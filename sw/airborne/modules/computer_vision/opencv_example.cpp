@@ -49,6 +49,11 @@ int opencv_example(char *img, int width, int height)
   Canny(image, image, edgeThresh, edgeThresh * 3);
   // Convert back to YUV422, and put it in place of the original image
   grayscale_opencv_to_yuv422(image, img, width, height);
+
+
+
+
+  
 #else // OPENCVDEMO_GRAYSCALE
   // Color image example
   // Convert the image to an OpenCV Mat

@@ -59,22 +59,15 @@ uint8_t cod_cb_min1 = 0;
 uint8_t cod_cb_max1 = 0;
 uint8_t cod_cr_min1 = 0;
 uint8_t cod_cr_max1 = 0;
-
-uint8_t cod_lum_min2 = 0;
-uint8_t cod_lum_max2 = 0;
-uint8_t cod_cb_min2 = 0;
-uint8_t cod_cb_max2 = 0;
-uint8_t cod_cr_min2 = 0;
-uint8_t cod_cr_max2 = 0;
-
 bool cod_draw1 = false;
-bool cod_draw2 = false;
+
+int32_t x_c, y_c;
 
 // define global variables
 struct color_object_t {
-  int32_t x_c;
-  int32_t y_c;
-  uint32_t color_count;
+  int32_t left_pixel;
+  int32_t right_pixel;
+  uint32_t distane_measure;
   bool updated;
 };
 struct color_object_t global_filters[2];
@@ -84,6 +77,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
+
 
 /*
  * object_detector
@@ -108,31 +102,21 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cr_max = cod_cr_max1;
       draw = cod_draw1;
       break;
-    case 2:
-      lum_min = cod_lum_min2;
-      lum_max = cod_lum_max2;
-      cb_min = cod_cb_min2;
-      cb_max = cod_cb_max2;
-      cr_min = cod_cr_min2;
-      cr_max = cod_cr_max2;
-      draw = cod_draw2;
-      break;
     default:
       return img;
   };
 
-  int32_t x_c, y_c;
-
+  
   // Filter and find centroid
-  uint32_t count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+  uint32_t left_pixel, right_pixel, distance_measure = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
   VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
   VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
         hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
 
   pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count = count;
-  global_filters[filter-1].x_c = x_c;
-  global_filters[filter-1].y_c = y_c;
+  global_filters[filter-1].color_count = distance_measure;
+  global_filters[filter-1].x_c = left_pixel;
+  global_filters[filter-1].y_c = right_pixel;
   global_filters[filter-1].updated = true;
   pthread_mutex_unlock(&mutex);
 
@@ -145,18 +129,18 @@ struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attrib
   return object_detector(img, 1);
 }
 
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id __attribute__((unused)))
-{
-  return object_detector(img, 2);
-}
-
 void color_object_detector_init(void)
 {
   memset(global_filters, 0, 2*sizeof(struct color_object_t));
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN1
+#ifdef 
+  //Tinka: we added only the first 3 beauties
+  minHue = COLOR_OBJECT_DETECTOR_MINHUE;
+  maxHue = COLOR_OBJECT_DETECTOR_MAXHUE;
+  minSat = COLOR_OBJECT_DETECTOR_MINSAT;
+  amount_of_pixels = COLOR_OBJECT_DETECTOR_AOP;
+  
   cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
   cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
   cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
@@ -169,22 +153,6 @@ void color_object_detector_init(void)
 #endif
 
   cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, object_detector1, COLOR_OBJECT_DETECTOR_FPS1, 0);
-#endif
-
-#ifdef COLOR_OBJECT_DETECTOR_CAMERA2
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN2
-  cod_lum_min2 = COLOR_OBJECT_DETECTOR_LUM_MIN2;
-  cod_lum_max2 = COLOR_OBJECT_DETECTOR_LUM_MAX2;
-  cod_cb_min2 = COLOR_OBJECT_DETECTOR_CB_MIN2;
-  cod_cb_max2 = COLOR_OBJECT_DETECTOR_CB_MAX2;
-  cod_cr_min2 = COLOR_OBJECT_DETECTOR_CR_MIN2;
-  cod_cr_max2 = COLOR_OBJECT_DETECTOR_CR_MAX2;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW2
-  cod_draw2 = COLOR_OBJECT_DETECTOR_DRAW2;
-#endif
-
-  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA2, object_detector2, COLOR_OBJECT_DETECTOR_FPS2, 1);
 #endif
 }
 
@@ -211,21 +179,29 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max)
 {
-  uint32_t cnt = 0;
-  uint32_t tot_x = 0;
-  uint32_t tot_y = 0;
+  //Tinka: here I added the variables that we'll be needing and I removed the useless old ones. I did not change the inputs to this function.
+  uint32_t orange_Count = 0;
+  int rowList[550];
   uint8_t *buffer = img->buf;
 
-  // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
+  //Tinka: I changed the picture format from the old one to HSV, because I like how intuitive the newer space is
+  Mat M;
+
+  cvtColor(&buffer, M, CV_YUV2BGR_Y422);
+  cvtColor(M, M, CV_BGR2HSV);
+
+
+  //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
+  for (uint16_t row = 0; y < M->h; y++) {
+    for (uint16_t col = 0; x < M->w; x ++) {
+
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
       if (x % 2 == 0) {
         // Even x
-        up = &buffer[y * 2 * img->w + 2 * x];      // U
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
+        up = &buffer[row * 2 * img->w + 2 * col];      // U
+        yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
+        vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
         //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
       } else {
         // Uneven x
@@ -253,7 +229,13 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
     *p_xc = 0;
     *p_yc = 0;
   }
-  return cnt;
+
+  //Tinka: speed problem! This might be able to be removed, as the output image is not used/changed
+  //cvtColor(M, M, CV_HSV2BGR);
+  //colorbgr_opencv_to_yuv422(image, img, width, height);
+
+  //Tinka: fix multiple output problem
+  return left_pixel, right_pixel, distance_measure;
 }
 
 void color_object_detector_periodic(void)
@@ -263,14 +245,11 @@ void color_object_detector_periodic(void)
   memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
   pthread_mutex_unlock(&mutex);
 
-  if(local_filters[0].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].x_c, local_filters[0].y_c,
-        0, 0, local_filters[0].color_count, 0);
+  //Tinka: here the last value is pushed as 'extra' to the orange_avoid file. Here our data will be put :)
+  if(local_filters[0].updated)
+  {
+    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
+        0, 0, local_filters[0].distane_measure, 0);
     local_filters[0].updated = false;
-  }
-  if(local_filters[1].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION2_ID, local_filters[1].x_c, local_filters[1].y_c,
-        0, 0, local_filters[1].color_count, 1);
-    local_filters[1].updated = false;
   }
 }
