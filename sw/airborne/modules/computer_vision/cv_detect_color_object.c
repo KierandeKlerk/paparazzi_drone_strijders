@@ -59,6 +59,10 @@ uint8_t cod_cb_min1 = 0;
 uint8_t cod_cb_max1 = 0;
 uint8_t cod_cr_min1 = 0;
 uint8_t cod_cr_max1 = 0;
+uint8_t minHue1 = 0;
+uint8_t maxHue1 = 0;
+uint8_t minSat1 = 0;
+uint8_t amount_of_pixels1 = 0;
 bool cod_draw1 = false;
 
 int32_t x_c, y_c;
@@ -73,10 +77,13 @@ struct color_object_t {
 struct color_object_t global_filters[2];
 
 // Function
+//Tinka: the input to the function is kept the same + our 4 own variables
 uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max);
+                              uint8_t cr_min, uint8_t cr_max,
+                              uint8_t minHue, uint8_t maxHue,
+                              uint8_t minSat, uint8_t amount_of_pixels);
 
 
 /*
@@ -87,13 +94,26 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
  */
 static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 {
+  //Tinka: also here our variables are added and the old ones are kept for consistency
+  uint8_t minHue, maxHue;
+  uint8_t minSat;
+  uint8_t amount_of_pixels;  
+
   uint8_t lum_min, lum_max;
   uint8_t cb_min, cb_max;
   uint8_t cr_min, cr_max;
   bool draw;
 
   switch (filter){
+    //Tinka: there used to be 2 cases, but I only kept the first
     case 1:
+      //Tinka: also here our variables are added and the old ones are kept for consistency
+      minHue = minHue1;
+      maxHue = maxHue1;
+      minSat = minSat1;
+      amount_of_pixels = amount_of_pixels1;
+
+      //Tinka: old variabels
       lum_min = cod_lum_min1;
       lum_max = cod_lum_max1;
       cb_min = cod_cb_min1;
@@ -108,11 +128,13 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   
   // Filter and find centroid
-  uint32_t left_pixel, right_pixel, distance_measure = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+  //Tinka: our variables are added to the next line where we call the 'find_object_centroid' function
+  uint32_t left_pixel, right_pixel, distance_measure = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
   VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
   VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
         hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
 
+  //Tinka: here we add our found variables to the filter. I kept the old filter names to prevent errors, though this might be nice to change sometime
   pthread_mutex_lock(&mutex);
   global_filters[filter-1].color_count = distance_measure;
   global_filters[filter-1].x_c = left_pixel;
@@ -135,12 +157,14 @@ void color_object_detector_init(void)
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
 #ifdef 
-  //Tinka: we added only the first 3 beauties
-  minHue = COLOR_OBJECT_DETECTOR_MINHUE;
-  maxHue = COLOR_OBJECT_DETECTOR_MAXHUE;
-  minSat = COLOR_OBJECT_DETECTOR_MINSAT;
-  amount_of_pixels = COLOR_OBJECT_DETECTOR_AOP;
+  //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
+  //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
+  minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
+  maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
+  minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
+  amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
   
+  //Tinka: said unused variables:
   cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
   cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
   cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
@@ -159,44 +183,38 @@ void color_object_detector_init(void)
 /*
  * find_object_centroid
  *
- * Finds the centroid of pixels in an image within filter bounds.
- * Also returns the amount of pixels that satisfy these filter bounds.
- *
- * @param img - input image to process formatted as YUV422.
- * @param p_xc - x coordinate of the centroid of color object
- * @param p_yc - y coordinate of the centroid of color object
- * @param lum_min - minimum y value for the filter in YCbCr colorspace
- * @param lum_max - maximum y value for the filter in YCbCr colorspace
- * @param cb_min - minimum cb value for the filter in YCbCr colorspace
- * @param cb_max - maximum cb value for the filter in YCbCr colorspace
- * @param cr_min - minimum cr value for the filter in YCbCr colorspace
- * @param cr_max - maximum cr value for the filter in YCbCr colorspace
- * @param draw - whether or not to draw on image
- * @return number of pixels of image within the filter bounds.
+ * Tinka: the name of this function is no longer representative, but isn't changed to once again prevent the code from crashing 
+ * somewhere else :) also our variables are added to the input
+ * The code now calculates a list of the found objects containing their most left and right pixel 
  */
 uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max)
+                              uint8_t cr_min, uint8_t cr_max,
+                              uint8_t minHue, uint8_t maxHue,
+                              uint8_t minSat, uint8_t amount_of_pixels);                              )
 {
   //Tinka: here I added the variables that we'll be needing and I removed the useless old ones. I did not change the inputs to this function.
   uint32_t orange_Count = 0;
   int rowList[550];
   uint8_t *buffer = img->buf;
 
-  //Tinka: I changed the picture format from the old one to HSV, because I like how intuitive the newer space is
+  //Tinka: I changed the picture format from the old one to HSV, because I like how intuitive this color space is
   Mat M;
-
   cvtColor(&buffer, M, CV_YUV2BGR_Y422);
   cvtColor(M, M, CV_BGR2HSV);
 
 
   //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
-  for (uint16_t row = 0; y < M->h; y++) {
-    for (uint16_t col = 0; x < M->w; x ++) {
+  for (uint16_t row = 0; row < M->h; row++) {
+    for (uint16_t col = 0; col < M->w; col++) {
 
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
+      hue = M[]
+      sat = 
+      value = 
+
       if (x % 2 == 0) {
         // Even x
         up = &buffer[row * 2 * img->w + 2 * col];      // U
