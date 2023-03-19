@@ -67,11 +67,12 @@ bool cod_draw1 = false;
 
 int32_t x_c, y_c;
 
-// define global variables
+// define global variables 
+//Tinka: TODO: check if these are okay as they are for now
 struct color_object_t {
   int32_t left_pixel;
   int32_t right_pixel;
-  uint32_t distane_measure;
+  uint32_t quality;
   bool updated;
 };
 struct color_object_t global_filters[2];
@@ -129,16 +130,18 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   
   // Filter and find centroid
   //Tinka: our variables are added to the next line where we call the 'find_object_centroid' function
-  uint32_t left_pixel, right_pixel, distance_measure = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
-  VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
-  VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
-        hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
+  uint32_t quality = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
+  //Tinka: commented out the print statement because they're no longer relevant TODO: add nice new ones. USEFUL!
+  //VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
+  //VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
+        //hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
 
   //Tinka: here we add our found variables to the filter. I kept the old filter names to prevent errors, though this might be nice to change sometime
+  //Tinka: also commented out old unused filter variables because I lost track of where they're send of to
   pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count = distance_measure;
-  global_filters[filter-1].x_c = left_pixel;
-  global_filters[filter-1].y_c = right_pixel;
+  global_filters[filter-1].color_count = quality;
+  //global_filters[filter-1].x_c = left_pixel;
+  //global_filters[filter-1].y_c = right_pixel;
   global_filters[filter-1].updated = true;
   pthread_mutex_unlock(&mutex);
 
@@ -164,7 +167,7 @@ void color_object_detector_init(void)
   minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
   amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
   
-  //Tinka: said unused variables:
+  //Tinka: said unused variables (actually I did end up using them hehe):
   cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
   cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
   cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
@@ -194,15 +197,18 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t minHue, uint8_t maxHue,
                               uint8_t minSat, uint8_t amount_of_pixels);                              )
 {
-  //Tinka: here I added the variables that we'll be needing and I removed the useless old ones. I did not change the inputs to this function.
+  //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
   uint32_t orange_Count = 0;
   int rowList[550];
   uint8_t *buffer = img->buf;
-
-  //Tinka: I changed the picture format from the old one to HSV, because I like how intuitive this color space is
-  Mat M;
-  cvtColor(&buffer, M, CV_YUV2BGR_Y422);
-  cvtColor(M, M, CV_BGR2HSV);
+  int row;
+  int col;
+  int foundObstacles = 0;
+  int obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
+  int left_pixel;
+  int right_pixel;
+  int min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
+  int index;
 
 
   //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
@@ -211,9 +217,6 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
 
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
-      hue = M[]
-      sat = 
-      value = 
 
       if (x % 2 == 0) {
         // Even x
@@ -231,29 +234,39 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
       if ( (*yp >= lum_min) && (*yp <= lum_max) &&
            (*up >= cb_min ) && (*up <= cb_max ) &&
            (*vp >= cr_min ) && (*vp <= cr_max )) {
-        cnt ++;
-        tot_x += x;
-        tot_y += y;
-        if (draw){
-          *yp = 255;  // make pixel brighter in image
-        }
+        orangeCount ++;
+      } else {
+        orangeCount = 0;
       }
-    }
-  }
-  if (cnt > 0) {
-    *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
-    *p_yc = (int32_t)roundf(img->h * 0.5f - tot_y / ((float) cnt));
-  } else {
-    *p_xc = 0;
-    *p_yc = 0;
-  }
+      if orangeCount >= amount_of_pixels{
+        rowList[col] = 1;
+      }
+      }     
+      }
+    
+  for(index = 0; index <550; index ++){
+    //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
+    if ((rowList[index] == 0 ) &&
+        (rowList[index+1] == 1)){
+        left_pixel = index+1;
+        }
 
-  //Tinka: speed problem! This might be able to be removed, as the output image is not used/changed
-  //cvtColor(M, M, CV_HSV2BGR);
-  //colorbgr_opencv_to_yuv422(image, img, width, height);
+    //Tinka: checking where we go from 1 to 0 value (end of obstacle)
+    if ((rowList[index] == 1 ) &&
+            (rowList[index+1] == 0)){
+                right_pixel = index;
+                //Tinka: checking if the obstacle is wide enough to be interesting
+                if (right_pixel - left_pixel >= min_nrofCols){
+                obstacleList[foundobstacles] = left_pixel;
+                obstacleList[foundobstacles + 1] = right_pixel;
+                obstacleList[foundobstacles + 2] = right_pixel - left_pixel + 1;
+                foundobstacles += 3;
+                }
 
-  //Tinka: fix multiple output problem
-  return left_pixel, right_pixel, distance_measure;
+            
+  } 
+  //Tinka: wow :D
+  return obstacleList;
 }
 
 void color_object_detector_periodic(void)
@@ -263,7 +276,7 @@ void color_object_detector_periodic(void)
   memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
   pthread_mutex_unlock(&mutex);
 
-  //Tinka: here the last value is pushed as 'extra' to the orange_avoid file. Here our data will be put :)
+  //Tinka: here the last value is pushed as 'quality' to the orange_avoid file. Here our data will be put :)
   if(local_filters[0].updated)
   {
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
