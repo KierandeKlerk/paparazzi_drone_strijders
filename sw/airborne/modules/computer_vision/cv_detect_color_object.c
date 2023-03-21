@@ -29,7 +29,7 @@
 #include "modules/computer_vision/cv_detect_color_object.h"
 #include "modules/computer_vision/cv.h"
 #include "modules/core/abi.h"
-#include "std.h"
+#include "std.h" //joep: I think it should be <std.h> however still does not find the file
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -218,18 +218,18 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
 
-      if (x % 2 == 0) {
-        // Even x
+      if (col % 2 == 0) {
+        // Even col
         up = &buffer[row * 2 * img->w + 2 * col];      // U
         yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
         vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
         //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
       } else {
-        // Uneven x
-        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
+        // Uneven col
+        up = &buffer[row * 2 * img->w + 2 *  - 2];  // U
         //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x];      // V
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
+        vp = &buffer[row * 2 * img->w + 2 * col];      // V
+        yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
       }
       if ( (*yp >= lum_min) && (*yp <= lum_max) &&
            (*up >= cb_min ) && (*up <= cb_max ) &&
