@@ -78,20 +78,53 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
-  color_count = quality;
+  // color_count = quality;
 }
+
+
+// Jagga : till line 110
+int collision_threshold = 2; // Minial collison avoidance distance (in m) 
+int frame_center_coordinate = 8;
+
+int i = 0;// counter variable for the next loop
+int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
+
+for(i=2; i <=14){
+  if (x[i] > collision_threshold || x[i] ==0)
+    {
+        //update confidence level 
+        // switch case to SAFE
+        printf("I am safe, i am moving forward!I am moving forward!");
+    }
+  else if(x[i] <= collision_threshold)
+  {
+    //switch case to OBSTACLE Found
+    if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
+                                          // is to the left of center line
+      {
+        //turn right
+        printf("Object at Left, Giving command to turn right");
+      }
+  }
+  i = i+3;
+}
+
+
 
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
  */
 void orange_avoider_init(void)
 {
+
+  colour_count = x;
   // Initialise random values
   srand(time(NULL));
-  chooseRandomIncrementAvoidance();
+  // chooseRandomIncrementAvoidance();
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  // VERBOSE_PRINT("")
 }
 
 /*
@@ -101,78 +134,82 @@ void orange_avoider_periodic(void)
 {
   // only evaluate our state machine if we are flying
   if(!autopilot_in_flight()){
+    printf("I am flying?");
     return;
   }
 
   // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+  // int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  // VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
 
   // update our safe confidence using color threshold
-  if(color_count < color_count_threshold){
-    obstacle_free_confidence++;
-  } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
-  }
+  // if(color_count < color_count_threshold){
+  //   obstacle_free_confidence++;
+  // } else {
+  //   obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+  // }
 
   // bound obstacle_free_confidence
-  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  // Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
 
-  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+  // float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
 
-  switch (navigation_state){
-    case SAFE:
-      // Move waypoint forward
-      moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
-      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0){
-        navigation_state = OBSTACLE_FOUND;
-      } else {
-        moveWaypointForward(WP_GOAL, moveDistance);
-      }
+  // switch (navigation_state){
+  //   case SAFE:
+  //     // Move waypoint forward
+  //     moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
+  //     if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+  //       navigation_state = OUT_OF_BOUNDS;
+  //     } else if (obstacle_free_confidence == 0){
+  //       navigation_state = OBSTACLE_FOUND;
+  //     } else {
+  //       moveWaypointForward(WP_GOAL, moveDistance);
+  //     }
 
-      break;
-    case OBSTACLE_FOUND:
-      // stop
-      waypoint_move_here_2d(WP_GOAL);
-      waypoint_move_here_2d(WP_TRAJECTORY);
+  //     break;
+  //   case OBSTACLE_FOUND:
+  //     // stop
+  //     waypoint_move_here_2d(WP_GOAL);
+  //     waypoint_move_here_2d(WP_TRAJECTORY);
 
-      // randomly select new search direction
-      chooseRandomIncrementAvoidance();
+  //     // randomly select new search direction
+  //     chooseRandomIncrementAvoidance();
 
-      navigation_state = SEARCH_FOR_SAFE_HEADING;
+  //     navigation_state = SEARCH_FOR_SAFE_HEADING;
 
-      break;
-    case SEARCH_FOR_SAFE_HEADING:
-      increase_nav_heading(heading_increment);
+  //     break;
+  //   case SEARCH_FOR_SAFE_HEADING:
+  //     increase_nav_heading(heading_increment);
 
-      // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
-        navigation_state = SAFE;
-      }
-      break;
-    case OUT_OF_BOUNDS:
-      increase_nav_heading(heading_increment);
-      moveWaypointForward(WP_TRAJECTORY, 1.5f);
+  //     // make sure we have a couple of good readings before declaring the way safe
+  //     if (obstacle_free_confidence >= 2){
+  //       navigation_state = SAFE;
+  //     }
+  //     break;
+  //   case OUT_OF_BOUNDS:
+  //     increase_nav_heading(heading_increment);
+  //     moveWaypointForward(WP_TRAJECTORY, 1.5f);
 
-      if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        // add offset to head back into arena
-        increase_nav_heading(heading_increment);
+  //     if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+  //       // add offset to head back into arena
+  //       increase_nav_heading(heading_increment);
 
-        // reset safe counter
-        obstacle_free_confidence = 0;
+  //       // reset safe counter
+  //       obstacle_free_confidence = 0;
 
-        // ensure direction is safe before continuing
-        navigation_state = SEARCH_FOR_SAFE_HEADING;
-      }
-      break;
-    default:
-      break;
-  }
+  //       // ensure direction is safe before continuing
+  //       navigation_state = SEARCH_FOR_SAFE_HEADING;
+  //     }
+  //     break;
+  //   default:
+  //     break;
+  // }
   return;
 }
+
+
+
 
 /*
  * Increases the NAV heading. Assumes heading is an INT32_ANGLE. It is bound in this function.

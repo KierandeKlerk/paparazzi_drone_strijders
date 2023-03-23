@@ -72,8 +72,12 @@ int32_t x_c, y_c;
 struct color_object_t {
   int32_t left_pixel;
   int32_t right_pixel;
-  uint32_t quality;
+  uint32_t color_count;
   bool updated;
+
+  //Jagga: This variable inside the global filter was used in line 148
+  // uint32_t color_count; //
+
 };
 struct color_object_t global_filters[2];
 
@@ -159,30 +163,29 @@ void color_object_detector_init(void)
   memset(global_filters, 0, 2*sizeof(struct color_object_t));
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-#ifdef 
-  //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
-  //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
-  minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
-  maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
-  minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
-  amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
+  #ifdef COLOR_OBJECT_DECTECTOR_LUM_MIN1
+    //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
+   //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
+    minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
+    maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
+    minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
+   amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
   
-  //Tinka: said unused variables (actually I did end up using them hehe):
-  cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
-  cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
-  cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
-  cod_cb_max1 = COLOR_OBJECT_DETECTOR_CB_MAX1;
-  cod_cr_min1 = COLOR_OBJECT_DETECTOR_CR_MIN1;
-  cod_cr_max1 = COLOR_OBJECT_DETECTOR_CR_MAX1;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW1
+    //Tinka: said unused variables (actually I did end up using them hehe):
+    cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
+    cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
+    cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
+    cod_cb_max1 = COLOR_OBJECT_DETECTOR_CB_MAX1;
+    cod_cr_min1 = COLOR_OBJECT_DETECTOR_CR_MIN1;
+    cod_cr_max1 = COLOR_OBJECT_DETECTOR_CR_MAX1;
+  #endif
+  #ifdef COLOR_OBJECT_DETECTOR_DRAW1
   cod_draw1 = COLOR_OBJECT_DETECTOR_DRAW1;
-#endif
+  #endif
 
   cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, object_detector1, COLOR_OBJECT_DETECTOR_FPS1, 0);
 #endif
 }
-
 /*
  * find_object_centroid
  *
@@ -195,7 +198,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
                               uint8_t minHue, uint8_t maxHue,
-                              uint8_t minSat, uint8_t amount_of_pixels);                              )
+                              uint8_t minSat, uint8_t amount_of_pixels)
+
 {
   //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
   uint32_t orange_Count = 0;
@@ -213,18 +217,22 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
 
   //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
   for (uint16_t row = 0; row < M->h; row++) {
-    for (uint16_t col = 0; col < M->w; col++) {
+    for (uint16_t col = 0; col < M->w; col++) 
+    {
 
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
 
-      if (x % 2 == 0) {
+      if (x % 2 == 0) 
+      {
         // Even x
         up = &buffer[row * 2 * img->w + 2 * col];      // U
         yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
         vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
         //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-      } else {
+      } 
+      else 
+      {
         // Uneven x
         up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
         //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
@@ -241,8 +249,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
       if orangeCount >= amount_of_pixels{
         rowList[col] = 1;
       }
-      }     
-      }
+    }     
+  }
     
   for(index = 0; index <550; index ++){
     //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
