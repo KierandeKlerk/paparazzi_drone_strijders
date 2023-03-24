@@ -76,7 +76,8 @@ static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                               int32_t quality1,int32_t quality2,int32_t quality3,int32_t quality4,int32_t quality5,int32_t quality6,int32_t quality7,int32_t quality8,int32_t quality9,int32_t quality10,int32_t quality11,int32_t qualtiy12,int32_t quality13,int32_t quality14,int32_t quality15, int16_t __attribute__((unused)) extra)
+                               int32_t quality1,int32_t quality2,int32_t quality3,int32_t quality4,int32_t quality5,int32_t quality6,int32_t quality7,int32_t quality8,int32_t quality9,int32_t quality10,int32_t quality11,int32_t quality12,int32_t quality13,int32_t quality14,int32_t quality15, int16_t __attribute__((unused)) extra)
+{
 color_count[0] = quality1;
 color_count[1] = quality2;
 color_count[2] = quality3;
@@ -88,11 +89,11 @@ color_count[7] = quality8;
 color_count[8] = quality9;
 color_count[9] = quality10;
 color_count[10] = quality11;
-color_count[1]1 = quality12;
+color_count[11] = quality12;
 color_count[12] = quality13;
 color_count[13] = quality14;
 color_count[14] = quality15;
-
+}
 
 int loop;
 void orange_avoider_init(void)
@@ -114,7 +115,7 @@ int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is comin
 for(loop = 0; loop<15; loop++){
   printf("%d",color_count[loop]);
 }
-
+}
 // printf("%d,%d",x[2],x[5]);
 
 // for(i=2; i <=14;){
@@ -205,6 +206,7 @@ for(loop = 0; loop<15; loop++){
 // /*
 //  * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
 //  */
+
 // void orange_avoider_periodic(void)
 // {
 //   // only evaluate our state machine if we are flying

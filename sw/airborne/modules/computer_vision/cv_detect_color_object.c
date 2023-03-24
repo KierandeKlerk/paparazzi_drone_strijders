@@ -84,7 +84,7 @@ struct color_object_t global_filters[2]; // joep: this makes two intances of str
 
 // Function
 //Tinka: the input to the function is kept the same + our 4 own variables
-int* find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
@@ -219,7 +219,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
   int index;
 
   for(int loop = 0; loop < 15; loop ++){
-    obstacleList[loop] = 0
+    obstacleList[loop] = 0;
   }
 
 
@@ -292,9 +292,16 @@ void color_object_detector_periodic(void)
   //Tinka: here the last value is pushed as 'quality' to the orange_avoid file. Here our data will be put :)
   if(local_filters[0].updated)
   {
+//AbiSendMsgVISUAL_DETECTION(uint8_t sender_id, int16_t pixel_x, int16_t pixel_y, int16_t pixel_width, int16_t pixel_height, 
+//int32_t quality1, int32_t quality2, int32_t quality3, int32_t quality4, int32_t quality5, int32_t quality6, int32_t quality7, int32_t quality8, int32_t quality9, int32_t quality10, int32_t quality11, int32_t quality12, int32_t quality13, int32_t quality14, int32_t quality15, int16_t extra) {
+
+
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
-        0, 0, obstacleList[0],obstacleList[1],obstacleList[2],obstacleList[3],obstacleList[4],obstacleList[5],obstacleList[6],obstacleList[7],obstacleList[8],obstacleList[9],obstacleList[10],
-        obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14],obstacleList[15], 0);
+        0, 0, 
+        obstacleList[0],obstacleList[1],obstacleList[2],obstacleList[3],obstacleList[4],
+        obstacleList[5],obstacleList[6],obstacleList[7],obstacleList[8],obstacleList[9],
+        obstacleList[10],
+        obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14], 0);
     local_filters[0].updated = false;
   }
 }
