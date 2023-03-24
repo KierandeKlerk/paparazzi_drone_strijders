@@ -72,14 +72,14 @@ int32_t x_c, y_c;
 struct color_object_t {
   int32_t left_pixel;
   int32_t right_pixel;
-  uint32_t color_count;
+  uint32_t distance_measure;
   bool updated;
 
   //Jagga: This variable inside the global filter was used in line 148
   // uint32_t color_count; //
 
 };
-struct color_object_t global_filters[2];
+struct color_object_t global_filters[2]; // joep: this makes two intances of struct color_object_t namely globalfilters[0] and globalfilters[1]
 
 // Function
 //Tinka: the input to the function is kept the same + our 4 own variables
@@ -97,7 +97,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
  * @param filter - which detection filter to process
  * @return img
  */
-static struct image_t *object_detector(struct image_t *img, uint8_t filter)
+static struct image_t *object_detector(struct image_t *img, uint8_t filter) // joep:filter is always 1 at this point see object_detector1
 {
   //Tinka: also here our variables are added and the old ones are kept for consistency
   uint8_t minHue, maxHue;
@@ -143,7 +143,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   //Tinka: here we add our found variables to the filter. I kept the old filter names to prevent errors, though this might be nice to change sometime
   //Tinka: also commented out old unused filter variables because I lost track of where they're send of to
   pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count = quality;
+  global_filters[filter-1].distance_measure = quality;
   //global_filters[filter-1].x_c = left_pixel;
   //global_filters[filter-1].y_c = right_pixel;
   global_filters[filter-1].updated = true;
@@ -160,7 +160,7 @@ struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attrib
 
 void color_object_detector_init(void)
 {
-  memset(global_filters, 0, 2*sizeof(struct color_object_t));
+  memset(global_filters, 0, 2*sizeof(struct color_object_t)); //joep: I think this creates space for the two structs
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
   #ifdef COLOR_OBJECT_DECTECTOR_LUM_MIN1
@@ -202,12 +202,12 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
 
 {
   //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
-  uint32_t orange_Count = 0;
+  uint32_t orangeCount = 0;
   int rowList[550];
   uint8_t *buffer = img->buf;
   int row;
   int col;
-  int foundObstacles = 0;
+  int foundobstacles = 0;
   int obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
   int left_pixel;
   int right_pixel;
@@ -216,14 +216,14 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
 
 
   //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
-  for (uint16_t row = 0; row < M->h; row++) {
-    for (uint16_t col = 0; col < M->w; col++) 
+  for (uint16_t row = 0; row < img->h; row++) {
+    for (uint16_t col = 0; col < img->w; col++)
     {
 
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
 
-      if (x % 2 == 0) {
+      if (col% 2 == 0) {
         // Even x
         up = &buffer[row * 2 * img->w + 2 * col];      // U
         yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
@@ -231,8 +231,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
         //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
       } else {
         // Uneven x
-        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
-        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
+        up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
+        //yp = &buffer[y * 2 * img->w + 2 * col  - 1]; // Y1
         vp = &buffer[row * 2 * img->w + 2 * col];      // V
         yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
       }
@@ -243,7 +243,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
       } else {
         orangeCount = 0;
       }
-      if orangeCount >= amount_of_pixels{
+      if (orangeCount >= amount_of_pixels){
         rowList[col] = 1;
       }
     }     
