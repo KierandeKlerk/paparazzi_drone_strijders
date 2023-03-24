@@ -90,6 +90,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t minHue, uint8_t maxHue,
                               uint8_t minSat, uint8_t amount_of_pixels);
 
+                              
+
 
 /*
  * object_detector
@@ -134,7 +136,8 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter) // j
   
   // Filter and find centroid
   //Tinka: our variables are added to the next line where we call the 'find_object_centroid' function
-  uint32_t quality = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
+  uint32_t quality;
+  quality = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
   //Tinka: commented out the print statement because they're no longer relevant TODO: add nice new ones. USEFUL!
   //VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
   //VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
@@ -198,9 +201,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
                               uint8_t minHue, uint8_t maxHue,
-                              uint8_t minSat, uint8_t amount_of_pixels)
-
-{
+                              uint8_t minSat, uint8_t amount_of_pixels){
   //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
   uint32_t orangeCount = 0;
   int rowList[550];
@@ -285,7 +286,8 @@ void color_object_detector_periodic(void)
   if(local_filters[0].updated)
   {
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
-        0, 0, local_filters[0].distane_measure, 0);
+        0, 0, local_filters[0].distance_measure, 0);
     local_filters[0].updated = false;
   }
+}
 }
