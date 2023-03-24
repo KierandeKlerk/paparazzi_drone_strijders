@@ -55,7 +55,10 @@ float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count[15] ;                // orange color count from color filter for obstacle detection
+int32_t color_count[15] ;   
+int32_t obstacle_distance[5]  ;          
+int32_t left_pixel[5];
+int32_t right_pixel[5];
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
@@ -95,6 +98,8 @@ color_count[13] = quality14;
 color_count[14] = quality15;
 }
 
+
+
 int loop;
 void orange_avoider_init(void)
 {
@@ -109,12 +114,12 @@ void orange_avoider_init(void)
   VERBOSE_PRINT("*********************I am here**************************");
 int collision_threshold = 2; // Minial collison avoidance distance (in m) TTTTTTTTTTTTTTTTTTTTTtt
 int frame_center_coordinate = 8; // TTTTTTTTTTTTTTTTTtt
-int safe_width = 2; ///TTTTTTTTTTTTTTTTTTTtttt
-int i = 0;// counter variable for the next loop
-int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
-for(loop = 0; loop<15; loop++){
-  printf("%d",color_count[loop]);
-}
+//int safe_width = 2; ///TTTTTTTTTTTTTTTTTTTtttt
+//int i = 0;// counter variable for the next loop
+//int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
+//for(loop = 0; loop<15; loop++){
+//printf("%d",color_count[loop]);
+//}
 }
 // printf("%d,%d",x[2],x[5]);
 
@@ -207,40 +212,59 @@ for(loop = 0; loop<15; loop++){
 //  * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
 //  */
 
-// void orange_avoider_periodic(void)
-// {
-//   // only evaluate our state machine if we are flying
-//   if(!autopilot_in_flight()){
-//     printf("I am flying?");
-//     return;
-//   }
+void orange_avoider_periodic(void)
+ {
+   // only evaluate our state machine if we are flying
+   if(!autopilot_in_flight()){
+     printf("I am flying?");
+     return;
+        }
 
   // compute current color thresholds
 
   int32_t collision_threshold = 2;
-  int32_t frame_center_coordinate = 8;
-  int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
-  for (i=2 ; i=i+3 ; i < 14)
-  {
-    int obstacle_distance [5] =  colour_count[i]
-    continue;
-  }
-
-  for (i=0 ; i=i+3 ; i < 14)
-  {
-    int left_pixel [5] =  colour_count[i]
-    continue;
-  }
-
-  for (i=1 ; i=i+3 ; i < 14)
-  {
-    int right_pixel [5] =  colour_count[i]
-    continue;
-  }
   
-  for (i=0;i++;i<4)
+  int32_t frame_center_coordinate = 8;
+  
+  //int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0}; dummy values
+  
+  for (int i=2 ; i=i+3 ; i < 14)
+  { for (int j = 0 ; j++ ; j<4)
   {
-    if (obstacle_distance[i] > collision_threshold || obstacle distance[i]==0)
+    obstacle_distance [j] =  color_count[i];
+    continue;
+
+  }
+    
+    
+  };
+
+  for (int i=0 ; i=i+3 ; i < 14)
+  {
+    for (int j = 0 ; j++ ; j<4)
+    {
+      left_pixel [j] =  color_count[i];
+      continue;
+
+    }
+    
+  }
+
+  for (int i=1 ; i=i+3 ; i < 14)
+  {
+    for (int j = 0 ; j++ ; j<4) 
+    {
+      right_pixel [j] =  color_count[i];
+      continue;
+
+    }
+  }
+    
+  
+  
+  for (int i=0;i++;i<4)
+  {
+    if (obstacle_distance[i] > collision_threshold || obstacle_distance[i]==0)
     {
       obstacle_free_confidence ++ ;
 
@@ -250,16 +274,10 @@ for(loop = 0; loop<15; loop++){
     else
       {
         obstacle_free_confidence -= 2;
-        
-        
-        
       }
       
-    }
 
-    
-
-    // bound obstacle_free_confidence
+      // bound obstacle_free_confidence
      Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
      float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
 
@@ -289,16 +307,14 @@ for(loop = 0; loop<15; loop++){
             
           }
 
-      if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
+      else if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
           {
             increase_nav_heading_left_turn(heading_increment);
-            navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-            
+            navigation_state = SEARCH_FOR_SAFE_HEADING; 
           }
 
 
-      else if ()
+      else
       {
         chooseRandomIncrementAvoidance();
             navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -336,10 +352,15 @@ for(loop = 0; loop<15; loop++){
     default:
       break;
   }
-=======
+
   
   return;
 }
+  }
+
+    
+
+    
 
 
 

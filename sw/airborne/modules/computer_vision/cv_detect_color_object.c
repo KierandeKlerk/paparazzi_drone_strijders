@@ -169,15 +169,6 @@ void color_object_detector_init(void)
   memset(global_filters, 0, 2*sizeof(struct color_object_t)); //joep: I think this creates space for the two structs
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-<<<<<<< HEAD
-#if 0
-  //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
-  //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
-  minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
-  maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
-  minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
-  amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
-=======
   #ifdef COLOR_OBJECT_DECTECTOR_LUM_MIN1
     //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
    //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
@@ -185,7 +176,6 @@ void color_object_detector_init(void)
     maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
     minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
    amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
->>>>>>> f382269fa2e578bb54aa1c2a1d742f2853504838
   
     //Tinka: said unused variables (actually I did end up using them hehe):
     cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
