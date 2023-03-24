@@ -55,7 +55,7 @@ float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count = 0;                // orange color count from color filter for obstacle detection
+int32_t color_count[15] ;                // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
@@ -76,36 +76,145 @@ static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                               int32_t quality, int16_t __attribute__((unused)) extra)
-{
-  color_count = quality; 
+                               int32_t quality1,int32_t quality2,int32_t quality3,int32_t quality4,int32_t quality5,int32_t quality6,int32_t quality7,int32_t quality8,int32_t quality9,int32_t quality10,int32_t quality11,int32_t qualtiy12,int32_t quality13,int32_t quality14,int32_t quality15, int16_t __attribute__((unused)) extra)
+color_count[0] = quality1;
+color_count[1] = quality2;
+color_count[2] = quality3;
+color_count[3] = quality4;
+color_count[4] = quality5;
+color_count[5] = quality6;
+color_count[6] = quality7;
+color_count[7] = quality8;
+color_count[8] = quality9;
+color_count[9] = quality10;
+color_count[10] = quality11;
+color_count[11] = quality12;
+color_count[12] = quality13;
+color_count[13] = quality14;
+color_count[14] = quality15;
 
-}
 
-/*
- * Initialisation function, setting the colour filter, random seed and heading_increment
- */
+int loop;
 void orange_avoider_init(void)
 {
   // Initialise random values
   srand(time(NULL));
-  chooseRandomIncrementAvoidance();
+  // chooseRandomIncrementAvoidance();
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+
+  VERBOSE_PRINT("********************************************************");
+  VERBOSE_PRINT("*********************I am here**************************");
+int collision_threshold = 2; // Minial collison avoidance distance (in m) TTTTTTTTTTTTTTTTTTTTTtt
+int frame_center_coordinate = 8; // TTTTTTTTTTTTTTTTTtt
+int safe_width = 2; ///TTTTTTTTTTTTTTTTTTTtttt
+int i = 0;// counter variable for the next loop
+int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
+for(loop = 0; loop<15; loop++){
+  printf("%d",color_count[loop]);
 }
 
-/*
- * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
- */
-void orange_avoider_periodic(void)
-{
-  // only evaluate our state machine if we are flying
-  if(!autopilot_in_flight()){
-    return;
-  }
+// printf("%d,%d",x[2],x[5]);
+
+// for(i=2; i <=14;){
+//   if (x[i] > collision_threshold || x[i] ==0)
+//     {
+//         //update confidence level 
+//         // switch case to SAFE
+//         printf("I am safe, i am moving forward!I am moving forward!");
+//         printf("The distance to obstacle is %d",x[i]);//
+//     }
+//   else if(x[i] <= collision_threshold)
+//   {
+
+//     printf("OBSTACLE FOUND");
+//     printf("The distance to obstacle is %d",x[i]);
+
+//     if(x[i-2] < frame_center_coordinate){
+
+//     }
+//     else if(x[i-2]<(frame_center_coordinate + safe_width)){
+
+//     }
+
+//     if
+
+//     //switch case to OBSTACLE Found
+//     // if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
+//     //                                       // is to the left of center line
+//     //   {
+//     //     //turn right
+//     //     printf("Object at Left, Giving command to turn right");
+        
+//     //   }
+//   }
+//   i = i+3;
+// }
+//   VERBOSE_PRINT("*********************I am here**************************");
+//   VERBOSE_PRINT("********************************************************");
+// }
+
+
+
+// // Jagga : till line 110
+// int collision_threshold = 2; // Minial collison avoidance distance (in m) 
+// int frame_center_coordinate = 8;
+
+// int i = 0;// counter variable for the next loop
+// int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
+
+// for(i=2; i <=14){
+//   if (x[i] > collision_threshold || x[i] ==0)
+//     {
+//         //update confidence level 
+//         // switch case to SAFE
+//         printf("I am safe, i am moving forward!I am moving forward!");
+//     }
+//   else if(x[i] <= collision_threshold)
+//   {
+//     //switch case to OBSTACLE Found
+//     if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
+//                                           // is to the left of center line
+//       {
+//         //turn right
+//         printf("Object at Left, Giving command to turn right");
+//       }
+//   }
+//   i = i+3;
+// }
+
+
+
+// /*
+//  * Initialisation function, setting the colour filter, random seed and heading_increment
+//  */
+// void orange_avoider_init(void)
+// {
+
+//   colour_count = x;
+//   // Initialise random values
+//   srand(time(NULL));
+//   // chooseRandomIncrementAvoidance();
+
+//   // bind our colorfilter callbacks to receive the color filter outputs
+//   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+//   // VERBOSE_PRINT("")
+// }
+
+// /*
+//  * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
+//  */
+// void orange_avoider_periodic(void)
+// {
+//   // only evaluate our state machine if we are flying
+//   if(!autopilot_in_flight()){
+//     printf("I am flying?");
+//     return;
+//   }
 
   // compute current color thresholds
+
   int32_t collision_threshold = 2;
   int32_t frame_center_coordinate = 8;
   int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
@@ -170,7 +279,7 @@ void orange_avoider_periodic(void)
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_TRAJECTORY);
 
-      if (frame_center_coordinate - right_pixel[i]<frame_center_coordinate - left_pixel[i])
+      if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
           {
             increase_nav_heading_right_turn(heading_increment);
             navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -178,7 +287,7 @@ void orange_avoider_periodic(void)
             
           }
 
-      if (frame_center_coordinate - left_pixel[i]<frame_center_coordinate - right_pixel[i])
+      if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
           {
             increase_nav_heading_left_turn(heading_increment);
             navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -225,25 +334,12 @@ void orange_avoider_periodic(void)
     default:
       break;
   }
+=======
+  
   return;
 }
 
 
-     
-
-
-
-
-  
-
-  
-   
-
- 
-  
-  
-
- 
 
 /*
  * Increases the NAV heading. Assumes heading is an INT32_ANGLE. It is bound in this function.
