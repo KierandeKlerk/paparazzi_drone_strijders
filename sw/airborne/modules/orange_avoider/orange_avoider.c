@@ -216,75 +216,130 @@ for(loop = 0; loop<15; loop++){
 //   }
 
   // compute current color thresholds
-  // int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  // VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  int32_t collision_threshold = 2;
+  int32_t frame_center_coordinate = 8;
+  int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
+  for (i=2 ; i=i+3 ; i < 14)
+  {
+    int obstacle_distance [5] =  colour_count[i]
+    continue;
+  }
 
-  // update our safe confidence using color threshold
-  // if(color_count < color_count_threshold){
-  //   obstacle_free_confidence++;
-  // } else {
-  //   obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
-  // }
+  for (i=0 ; i=i+3 ; i < 14)
+  {
+    int left_pixel [5] =  colour_count[i]
+    continue;
+  }
 
-  // bound obstacle_free_confidence
-  // Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  for (i=1 ; i=i+3 ; i < 14)
+  {
+    int right_pixel [5] =  colour_count[i]
+    continue;
+  }
+  
+  for (i=0;i++;i<4)
+  {
+    if (obstacle_distance[i] > collision_threshold || obstacle distance[i]==0)
+    {
+      obstacle_free_confidence ++ ;
 
-  // float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+    }
 
-  // switch (navigation_state){
-  //   case SAFE:
-  //     // Move waypoint forward
-  //     moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
-  //     if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-  //       navigation_state = OUT_OF_BOUNDS;
-  //     } else if (obstacle_free_confidence == 0){
-  //       navigation_state = OBSTACLE_FOUND;
-  //     } else {
-  //       moveWaypointForward(WP_GOAL, moveDistance);
-  //     }
+ 
+    else
+      {
+        obstacle_free_confidence -= 2;
+        
+        
+        
+      }
+      
+    }
 
-  //     break;
-  //   case OBSTACLE_FOUND:
-  //     // stop
-  //     waypoint_move_here_2d(WP_GOAL);
-  //     waypoint_move_here_2d(WP_TRAJECTORY);
+    
 
-  //     // randomly select new search direction
-  //     chooseRandomIncrementAvoidance();
+    // bound obstacle_free_confidence
+     Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+     float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
 
-  //     navigation_state = SEARCH_FOR_SAFE_HEADING;
+    switch (navigation_state){
+    case SAFE:
+      // Move waypoint forward
+      moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
+      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+        navigation_state = OUT_OF_BOUNDS;
+      } else if (obstacle_free_confidence == 0){
+        navigation_state = OBSTACLE_FOUND;
+      } else {
+        moveWaypointForward(WP_GOAL, moveDistance);
+      }
 
-  //     break;
-  //   case SEARCH_FOR_SAFE_HEADING:
-  //     increase_nav_heading(heading_increment);
+      break;
+    case OBSTACLE_FOUND:
+      // stop
+      waypoint_move_here_2d(WP_GOAL);
+      waypoint_move_here_2d(WP_TRAJECTORY);
 
-  //     // make sure we have a couple of good readings before declaring the way safe
-  //     if (obstacle_free_confidence >= 2){
-  //       navigation_state = SAFE;
-  //     }
-  //     break;
-  //   case OUT_OF_BOUNDS:
-  //     increase_nav_heading(heading_increment);
-  //     moveWaypointForward(WP_TRAJECTORY, 1.5f);
+      if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
+          {
+            increase_nav_heading_right_turn(heading_increment);
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
 
-  //     if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-  //       // add offset to head back into arena
-  //       increase_nav_heading(heading_increment);
+            
+          }
 
-  //       // reset safe counter
-  //       obstacle_free_confidence = 0;
+      if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
+          {
+            increase_nav_heading_left_turn(heading_increment);
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
 
-  //       // ensure direction is safe before continuing
-  //       navigation_state = SEARCH_FOR_SAFE_HEADING;
-  //     }
-  //     break;
-  //   default:
-  //     break;
-  // }
+            
+          }
+
+
+      else if ()
+      {
+        chooseRandomIncrementAvoidance();
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
+
+      }
+
+    
+      // randomly select new search direction
+      
+      break;
+    case SEARCH_FOR_SAFE_HEADING:
+          
+      increase_nav_heading(heading_increment);
+
+      // make sure we have a couple of good readings before declaring the way safe
+      if (obstacle_free_confidence >= 2){
+        navigation_state = SAFE;
+      }
+      break;
+    case OUT_OF_BOUNDS:
+      increase_nav_heading(heading_increment);
+      moveWaypointForward(WP_TRAJECTORY, 1.5f);
+
+      if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+        // add offset to head back into arena
+        increase_nav_heading(heading_increment);
+
+        // reset safe counter
+        obstacle_free_confidence = 0;
+
+        // ensure direction is safe before continuing
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+      }
+      break;
+    default:
+      break;
+  }
+=======
+  
   return;
 }
-
 
 
 
@@ -306,6 +361,36 @@ uint8_t increase_nav_heading(float incrementDegrees)
   return false;
 }
 
+
+uint8_t increase_nav_heading_right_turn(float incrementDegrees)
+{
+  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
+
+  // normalize heading to [-pi, pi]
+  FLOAT_ANGLE_NORMALIZE(new_heading);
+
+  // set heading, declared in firmwares/rotorcraft/navigation.h
+  // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
+  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
+
+  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+  return false;
+}
+
+uint8_t increase_nav_heading_left_turn(float incrementDegrees)
+{
+  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
+
+  // normalize heading to [-pi, pi]
+  FLOAT_ANGLE_NORMALIZE(new_heading);
+
+  // set heading, declared in firmwares/rotorcraft/navigation.h
+  // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
+  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
+
+  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+  return false;
+}
 /*
  * Calculates coordinates of distance forward and sets waypoint 'waypoint' to those coordinates
  */
@@ -359,4 +444,6 @@ uint8_t chooseRandomIncrementAvoidance(void)
   }
   return false;
 }
+
+
 
