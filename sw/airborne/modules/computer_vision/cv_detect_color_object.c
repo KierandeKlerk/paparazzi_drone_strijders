@@ -159,7 +159,7 @@ void color_object_detector_init(void)
   memset(global_filters, 0, 2*sizeof(struct color_object_t));
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-#ifdef 
+#if 0
   //Tinka: we added our own variables, these are loaded from the cv_detect_color_object.xml file :)
   //Tinka: remaining variables are kept to not mess up existing 'ifdef' statements
   minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
