@@ -53,6 +53,7 @@ static pthread_mutex_t mutex;
 #endif
 
 // Filter Settings
+int obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
 uint8_t cod_lum_min1 = 0;
 uint8_t cod_lum_max1 = 0;
 uint8_t cod_cb_min1 = 0;
@@ -72,7 +73,7 @@ int32_t x_c, y_c;
 struct color_object_t {
   int32_t left_pixel;
   int32_t right_pixel;
-  uint32_t distance_measure;
+  int distance_measure[15];
   bool updated;
 
   //Jagga: This variable inside the global filter was used in line 148
@@ -83,7 +84,7 @@ struct color_object_t global_filters[2]; // joep: this makes two intances of str
 
 // Function
 //Tinka: the input to the function is kept the same + our 4 own variables
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+int* find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
@@ -136,8 +137,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter) // j
   
   // Filter and find centroid
   //Tinka: our variables are added to the next line where we call the 'find_object_centroid' function
-  uint32_t quality;
-  quality = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
+  find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, minHue, maxHue, minSat, amount_of_pixels);
   //Tinka: commented out the print statement because they're no longer relevant TODO: add nice new ones. USEFUL!
   //VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
   //VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
@@ -146,7 +146,10 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter) // j
   //Tinka: here we add our found variables to the filter. I kept the old filter names to prevent errors, though this might be nice to change sometime
   //Tinka: also commented out old unused filter variables because I lost track of where they're send of to
   pthread_mutex_lock(&mutex);
-  global_filters[filter-1].distance_measure = quality;
+
+  for(int counter = 0; counter<15; counter++){
+    global_filters[filter-1].distance_measure[counter] = obstacleList[counter];
+  }
   //global_filters[filter-1].x_c = left_pixel;
   //global_filters[filter-1].y_c = right_pixel;
   global_filters[filter-1].updated = true;
@@ -196,7 +199,7 @@ void color_object_detector_init(void)
  * somewhere else :) also our variables are added to the input
  * The code now calculates a list of the found objects containing their most left and right pixel 
  */
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
@@ -209,11 +212,15 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   int row;
   int col;
   int foundobstacles = 0;
-  int obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
+  
   int left_pixel;
   int right_pixel;
   int min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
   int index;
+
+  for(int loop = 0; loop < 15; loop ++){
+    obstacleList[loop] = 0
+  }
 
 
   //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
@@ -272,7 +279,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
             
   } 
   //Tinka: wow :D
-  return obstacleList;
+  //return obstacleList;
 }
 
 void color_object_detector_periodic(void)
@@ -286,7 +293,8 @@ void color_object_detector_periodic(void)
   if(local_filters[0].updated)
   {
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
-        0, 0, local_filters[0].distance_measure, 0);
+        0, 0, obstacleList[0],obstacleList[1],obstacleList[2],obstacleList[3],obstacleList[4],obstacleList[5],obstacleList[6],obstacleList[7],obstacleList[8],obstacleList[9],obstacleList[10],
+        obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14],obstacleList[15], 0);
     local_filters[0].updated = false;
   }
 }

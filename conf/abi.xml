@@ -185,7 +185,21 @@
       <field name="pixel_y"      type="int16_t">Center pixel Y</field>
       <field name="pixel_width"  type="int16_t">Width in pixels</field>
       <field name="pixel_height" type="int16_t">Height in pixels</field>
-      <field name="quality"      type="int32_t">Detection quality</field>
+      <field name="quality1"      type="int32_t">Detection quality</field>
+      <field name="quality2"      type="int32_t">Detection quality</field>
+      <field name="quality3"      type="int32_t">Detection quality</field>
+      <field name="quality4"      type="int32_t">Detection quality</field>
+      <field name="quality5"      type="int32_t">Detection quality</field>
+      <field name="quality6"      type="int32_t">Detection quality</field>
+      <field name="quality7"      type="int32_t">Detection quality</field>
+      <field name="quality8"      type="int32_t">Detection quality</field>
+      <field name="quality9"      type="int32_t">Detection quality</field>
+      <field name="quality10"      type="int32_t">Detection quality</field>
+      <field name="quality11"      type="int32_t">Detection quality</field>
+      <field name="quality12"      type="int32_t">Detection quality</field>
+      <field name="quality13"      type="int32_t">Detection quality</field>
+      <field name="quality14"      type="int32_t">Detection quality</field>
+      <field name="quality15"      type="int32_t">Detection quality</field>
       <field name="extra"        type="int16_t">Extra field for options like detector source etc</field>
     </message>
 
