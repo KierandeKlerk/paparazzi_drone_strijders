@@ -41,6 +41,8 @@ static uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
+static uint8_t increase_nav_heading_right_turn(float incrementDegrees);
+static uint8_t increase_nav_heading_left_turn(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
 enum navigation_state_t {
@@ -100,7 +102,7 @@ color_count[14] = quality15;
 
 
 
-int loop;
+//int loop;
 void orange_avoider_init(void)
 {
   // Initialise random values
@@ -175,9 +177,7 @@ int frame_center_coordinate = 8; // TTTTTTTTTTTTTTTTTtt
 //     {
 //         //update confidence level 
 //         // switch case to SAFE
-//         printf("I am safe, i am moving forward!I am moving forward!");
-//     }
-//   else if(x[i] <= collision_threshold)
+//         printf("I am safeon_threshold)
 //   {
 //     //switch case to OBSTACLE Found
 //     if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
@@ -198,14 +198,14 @@ int frame_center_coordinate = 8; // TTTTTTTTTTTTTTTTTtt
 // void orange_avoider_init(void)
 // {
 
-//   colour_count = x;
-//   // Initialise random values
-//   srand(time(NULL));
-//   // chooseRandomIncrementAvoidance();
 
-//   // bind our colorfilter callbacks to receive the color filter outputs
+// //Initialise random values
+//   srand(time(NULL));
+//   chooseRandomIncrementAvoidance();
+
+// //   // bind our colorfilter callbacks to receive the color filter outputs
 //   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-//   // VERBOSE_PRINT("")
+//   VERBOSE_PRINT("");
 // }
 
 // /*
@@ -232,7 +232,6 @@ void orange_avoider_periodic(void)
   { for (int j = 0 ; j++ ; j<4)
   {
     obstacle_distance [j] =  color_count[i];
-    continue;
 
   }
     
@@ -244,7 +243,7 @@ void orange_avoider_periodic(void)
     for (int j = 0 ; j++ ; j<4)
     {
       left_pixel [j] =  color_count[i];
-      continue;
+      
 
     }
     
@@ -255,7 +254,7 @@ void orange_avoider_periodic(void)
     for (int j = 0 ; j++ ; j<4) 
     {
       right_pixel [j] =  color_count[i];
-      continue;
+      
 
     }
   }
