@@ -152,87 +152,78 @@ void vertical_edge_detector_init(void)
 #endif
 }
 
-/**
- * Convert an image to grayscale.
- * Depending on the output type the U/V bytes are removed
- * @param[in] *input The input image (Needs to be YUV422)
- * @param[out] *output The output image
- * joep: taken from image.c no idea how to import correctly so i just coppied it
- */
-void image_to_grayscale(struct image_t *input, struct image_t *output)
-{
-    uint8_t *source = input->buf;
-    uint8_t *dest = output->buf;
-    source++;
 
-    // Copy the creation timestamp (stays the same)
-    output->ts = input->ts;
-    output->eulers = input->eulers;
-    output->pprz_ts = input->pprz_ts;
 
-    // Copy the pixels
-    int height = output->h;
-    int width = output->w;
-    if (output->type == IMAGE_YUV422) {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++){
-                *dest++ = 127;  // U / V
-                *dest++ = *source;    // Y
-                source += 2;
-            }
-        }
-    } else {
-        for (int y = 0; y < height * width; y++) {
-            *dest++ = *source++;    // Y
-            source++;
-        }
-    }
-}
 /**
  * resize an image .
  * takes range of columns and rows to maintain
  * @param[in] *input The input image
  * @param[in] columns the columns to copy
  * @param[in] rows the rows to copy
- * @param[out] *output The output image
+ * @param[out] *output The output image\
+ * most is direct copy from image.c
  */
-void crop_and_greyscale_image(struct image_t *input, struct image_t *output, uint16_t columns[2], uint16_t rows[2])
+void crop_and_greyscale_image(struct image_t *input, struct image_t *output)
 {
-    uint8_t *source = input->buf;
-    uint8_t *dest = output->buf;
-    source++; // Joep skips the first byte in de image as this it is stored UYVYUY....
+    //buffer
+    uint8_t *source = input->buf; //pointer to the input_image buffer
+    uint8_t *dest = output->buf; // pointer to the output_image buffer might change this to a simple array
 
     // Copy the creation timestamp (stays the same)
     output->ts = input->ts;
     output->eulers = input->eulers;
     output->pprz_ts = input->pprz_ts;
 
-    // Copy the pixels
-    int height = output->h;
-    int width = output->w;
+    // input - output sizes !WIDTH should be equal
+    uint16_t height_in = input->h;
+    uint16_t width_in = input->w;
+    uint16_t height_out = output->h;
+    uint16_t width_out = output->w;
 
-//    for (int y = 0; y < height * width; y++) {
-//        *dest++ = *source++;    // Y
-//        source++;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            // TODO add if statement to only add rows and columns in range of parameters
+    // bottem rows to copy
+    uint16_t rows[2];
+    rows[0] = height_in - height_out; //first row to use !height out should be smaller than height in
+    rows[1] = height_in;  //last row to use
+
+    // UYVY 2 bytes per pixel 2 * width bytes per row skipping x rows is 2 * width * x, bytes
+    // as it is stored as UYVY we need to skip 1 byte more to get to Y value
+    source +=  2 * width_in * rows[0] + 1;
+
+    for (int y = 0; y < height_out; y++) {
+        for (int x = 0; x < width_out; x++) {
+
             // if y x outside skip to the next that is in range
             *dest++ = *source;    // Y
-            source += 2;
+            source += 2; // skip a byte to keep
+        }
     }
 
 }
 
+void horizontal_convolution(struct image_t *input, struct image_t *output, int8_t kernel_horizontal[3]){
+    // buffers should contain arrays only holding Y value per pixel
 
-uint8_t horizontalkernelconvolution(uint8_t greyscale_img, int8_t horizontal_kernel,int8_t vertical_kernel
-uint8_t image_size, uint8_t kernel_size)
-{
-    uint8_t output_size =
+    // input - output sizes
+    uint16_t height_in = input->h;
+    uint16_t width_in = input->w;
+
+    for (int y = 0; y < height_in; y++){
+        for (int x = 0; x < width_in; x++) {
+
+            // if y x outside skip to the next that is in range
+            *dest++ = *source;    // Y
+            source += 2; // skip a byte to keep
+        }
+    };
+
 }
 
-uint8_t verticalkernelconvolution(uint8_t greyscale_img, int8_t kernel)
-{}
+void seperableconvolution(struct image_t *input, struct image_t *output, int8_t kernel_horizontal[3], int8_t, kernel_vertical[3])
+{
+    struct image_t intermediate_img;
+
+
+}
 
 /*
  * find_vertical_edges*
@@ -244,16 +235,19 @@ uint8_t verticalkernelconvolution(uint8_t greyscale_img, int8_t kernel)
 uint32_t find_vertical_edges(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw, uint8_t amount_of_pixels)
 {
     //Variables required in function
-    int row;
-    int col;
+    u_int8 rows[2];
+    u_int8 cols[2];
     struct image_t grayscale;
     struct image_t sobel;
 
-    //crop image only y values (greyscale)
+    //make this tune able? in other words make it a setting
+    rows[0] = 200; // first row to include
+    rows[1] = 240; // last row to use
+    cols[0] = 0;   // equivalent for columns
+    cols[1] = 520;
 
 
-
-
-
+    //crop image and greyscale it saved in grayscale
+    crop_and_grayscale_image(img, grayscale, rows, cols)
 }
 
