@@ -105,65 +105,20 @@ void orange_avoider_init(void)
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
 
+
   VERBOSE_PRINT("********************************************************");
   VERBOSE_PRINT("*********************I am here**************************");
-int collision_threshold = 2; // Minial collison avoidance distance (in m) TTTTTTTTTTTTTTTTTTTTTtt
-int frame_center_coordinate = 8; // TTTTTTTTTTTTTTTTTtt
-int safe_width = 2; ///TTTTTTTTTTTTTTTTTTTtttt
-int i = 0;// counter variable for the next loop
-int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
-for(loop = 0; loop<15; loop++){
-  printf("%d",color_count[loop]);
-}
-}
-// printf("%d,%d",x[2],x[5]);
-
-// for(i=2; i <=14;){
-//   if (x[i] > collision_threshold || x[i] ==0)
-//     {
-//         //update confidence level 
-//         // switch case to SAFE
-//         printf("I am safe, i am moving forward!I am moving forward!");
-//         printf("The distance to obstacle is %d",x[i]);//
-//     }
-//   else if(x[i] <= collision_threshold)
-//   {
-
-//     printf("OBSTACLE FOUND");
-//     printf("The distance to obstacle is %d",x[i]);
-
-//     if(x[i-2] < frame_center_coordinate){
-
-//     }
-//     else if(x[i-2]<(frame_center_coordinate + safe_width)){
-
-//     }
-
-//     if
-
-//     //switch case to OBSTACLE Found
-//     // if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
-//     //                                       // is to the left of center line
-//     //   {
-//     //     //turn right
-//     //     printf("Object at Left, Giving command to turn right");
-        
-//     //   }
-//   }
-//   i = i+3;
-// }
-//   VERBOSE_PRINT("*********************I am here**************************");
-//   VERBOSE_PRINT("********************************************************");
-// }
-
-
-
-// // Jagga : till line 110
-// int collision_threshold = 2; // Minial collison avoidance distance (in m) 
-// int frame_center_coordinate = 8;
+int collision_threshold = 2; // Minial collison avoidance distance (in m) 
+int frame_center_coordinate = 8; // Safe_center_Coordinate
+int safe_width = 2; //Safe_Distance_Width
 
 // int i = 0;// counter variable for the next loop
 // int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
+// for(loop = 0; loop<15; loop++){
+//   printf("%d",color_count[loop]);
+// }
+}
+
 
 // for(i=2; i <=14){
 //   if (x[i] > collision_threshold || x[i] ==0)
@@ -186,79 +141,47 @@ for(loop = 0; loop<15; loop++){
 // }
 
 
+void orange_avoider_periodic(void)
+{
+  // only evaluate our state machine if we are flying
+  if(!autopilot_in_flight()){
+    printf("I am flying?");
+    return;
+  }
 
-// /*
-//  * Initialisation function, setting the colour filter, random seed and heading_increment
-//  */
-// void orange_avoider_init(void)
-// {
+  //compute current color thresholds
 
-//   colour_count = x;
-//   // Initialise random values
-//   srand(time(NULL));
-//   // chooseRandomIncrementAvoidance();
-
-//   // bind our colorfilter callbacks to receive the color filter outputs
-//   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-//   // VERBOSE_PRINT("")
-// }
-
-// /*
-//  * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
-//  */
-
-// void orange_avoider_periodic(void)
-// {
-//   // only evaluate our state machine if we are flying
-//   if(!autopilot_in_flight()){
-//     printf("I am flying?");
-//     return;
-//   }
-
-  // compute current color thresholds
-
-  int32_t collision_threshold = 2;
+  int32_t collision_threshold = 2;        // Distance_to_collision_threshold
   int32_t frame_center_coordinate = 8;
-  int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
-  for (i=2 ; i=i+3 ; i < 14)
-  {
-    int obstacle_distance [5] =  colour_count[i]
-    continue;
-  }
+  // int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
 
-  for (i=0 ; i=i+3 ; i < 14)
-  {
-    int left_pixel [5] =  colour_count[i]
-    continue;
-  }
+  int i = 0;
+  for(i=2; i <=14; i+=3){
+    if (color_count[i] > collision_threshold || color_count[i] ==0)
+      {
+          //update confidence level 
+          // switch case to SAFE
+          navigation_state = SAFE;
+          printf("I am safe, i am moving forward!I am moving forward!");
+          printf("The distance to obstacle is %d",color_count[i]);//
 
-  for (i=1 ; i=i+3 ; i < 14)
-  {
-    int right_pixel [5] =  colour_count[i]
-    continue;
-  }
-  
-  for (i=0;i++;i<4)
-  {
-    if (obstacle_distance[i] > collision_threshold || obstacle distance[i]==0)
+      }
+    else if(color_count[i] <= collision_threshold)
     {
-      obstacle_free_confidence ++ ;
 
+      printf("OBSTACLE FOUND");
+      printf("The distance to obstacle is %d",color_count[i]);
+      navigation_state = OBSTACLE_FOUND; //    switch case to OBSTACLE Found
+      return i;
+      break;
     }
+    //i = i+3;
+  }
+
+
+
 
  
-    else
-      {
-        obstacle_free_confidence -= 2;
-        
-        
-        
-      }
-      
-    }
-
-    
-
     // bound obstacle_free_confidence
      Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
      float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
@@ -280,30 +203,44 @@ for(loop = 0; loop<15; loop++){
       // stop
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_TRAJECTORY);
+      //int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
 
-      if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
-          {
-            increase_nav_heading_right_turn(heading_increment);
-            navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-            
-          }
-
-      if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
-          {
-            increase_nav_heading_left_turn(heading_increment);
-            navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-            
-          }
-
-
-      else if ()
-      {
-        chooseRandomIncrementAvoidance();
-            navigation_state = SEARCH_FOR_SAFE_HEADING;
-
+      if(color_count[i-2] < frame_center_coordinate) // this means that the obstabcle 
+                                            // is to the left of center line
+        {
+          //turn right
+          printf("Object at Left, Giving command to turn right");
+          chooseRandomIncrementAvoidance_Right();
+          
+        }
+        else if(color_count[i-2]<(frame_center_coordinate + safe_width)){
+          //turn Left
+          printf("Object at Left, Giving command to turn Left");
+          chooseRandomIncrementAvoidance_Left();
       }
+  
+      // if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
+      //     {
+      //       increase_nav_heading_right_turn(heading_increment);
+      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
+
+            
+      //     }
+
+      // if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
+      //     {
+      //       increase_nav_heading_left_turn(heading_increment);
+      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
+
+            
+      //     }
+
+      // else if ()
+      // {
+      //   chooseRandomIncrementAvoidance();
+      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
+
+      // }
 
     
       // randomly select new search direction
@@ -443,7 +380,57 @@ uint8_t chooseRandomIncrementAvoidance(void)
     VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
   }
   return false;
+}uint8_t chooseRandomIncrementAvoidance_Right(void)
+{
+  // Randomly choose CW avoiding direction
+    heading_increment = 5.f;
+    VERBOSE_PRINT("Set avoidance increment to: %f\n Right", heading_increment);
+  return false;
+}
+uint8_t chooseRandomIncrementAvoidance_Left(void)
+{
+  // Randomly choose CCW avoiding direction
+    heading_increment = -5.f;
+    VERBOSE_PRINT("Set avoidance increment to: %f\n Left", heading_increment);
+  return false;
 }
 
 
 
+// Extra NAV(Shub) Code
+ // for (i=2 ; i=i+3 ; i < 14)
+  // {
+  //   int obstacle_distance [5] =  colour_count[i]
+  //   continue;
+  // }
+
+// for (i=0 ; i=i+3 ; i < 14)
+  // {
+  //   int left_pixel [5] =  colour_count[i]
+  //   continue;
+  // }
+
+  // for (i=1 ; i=i+3 ; i < 14)
+  // {
+  //   int right_pixel [5] =  colour_count[i]
+  //   continue;
+  // }
+  
+  // for (i=0;i++;i<4)
+  // {
+  //   if (obstacle_distance[i] > collision_threshold || obstacle distance[i]==0)
+  //   {
+  //     obstacle_free_confidence ++ ;
+
+  //   }
+
+ 
+  //   else
+  //     {
+  //       obstacle_free_confidence -= 2;
+        
+        
+        
+  //     }
+      
+  //   }
