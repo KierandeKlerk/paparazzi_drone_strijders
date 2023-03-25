@@ -60,11 +60,20 @@ uint8_t cod_cb_min1 = 0;
 uint8_t cod_cb_max1 = 0;
 uint8_t cod_cr_min1 = 0;
 uint8_t cod_cr_max1 = 0;
+uint8_t cod_lum_min2 = 0;
+uint8_t cod_lum_max2 = 0;
+uint8_t cod_cb_min2 = 0;
+uint8_t cod_cb_max2 = 0;
+uint8_t cod_cr_min2 = 0;
+uint8_t cod_cr_max2 = 0;
+
+//joep : added back old variables as they give undefined error when missing
 uint8_t minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
 uint8_t amount_of_pixels1 = 0;
 bool cod_draw1 = false;
+bool cod_draw2 = false;
 
 int32_t x_c, y_c;
 
@@ -175,7 +184,7 @@ void color_object_detector_init(void)
     minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
     maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
     minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
-   amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
+    amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
   
     //Tinka: said unused variables (actually I did end up using them hehe):
     cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
