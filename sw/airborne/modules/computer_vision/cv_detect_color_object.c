@@ -60,11 +60,20 @@ uint8_t cod_cb_min1 = 0;
 uint8_t cod_cb_max1 = 0;
 uint8_t cod_cr_min1 = 0;
 uint8_t cod_cr_max1 = 0;
-uint8_t minHue1 = 0;
+uint8_t cod_lum_min2 = 0;
+uint8_t cod_lum_max2 = 0;
+uint8_t cod_cb_min2 = 0;
+uint8_t cod_cb_max2 = 0;
+uint8_t cod_cr_min2 = 0;
+uint8_t cod_cr_max2 = 0;
+
+//Joep: added old variables to remove bug
+uint8_t  minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
 uint8_t amount_of_pixels1 = 0;
 bool cod_draw1 = false;
+bool cod_draw2 = false;
 
 int32_t x_c, y_c;
 
