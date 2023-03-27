@@ -143,7 +143,7 @@ void orange_avoider_periodic(void)
   
   printf("Counter : ------------%d-------------",counter);
 
-  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",color_count[0],color_count[1],color_count[2],
+  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",quality1,color_count[1],color_count[2],
     color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
     color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
     color_count[15]); /// //Print all Incoming color coordinate array 

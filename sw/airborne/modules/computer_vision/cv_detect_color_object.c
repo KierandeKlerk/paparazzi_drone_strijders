@@ -53,7 +53,7 @@ static pthread_mutex_t mutex;
 #endif
 
 // Filter Settings
-int obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
+uint16_t obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
 uint8_t cod_lum_min1 = 0;
 uint8_t cod_lum_max1 = 0;
 uint8_t cod_cb_min1 = 0;
@@ -67,8 +67,8 @@ uint8_t cod_cb_max2 = 0;
 uint8_t cod_cr_min2 = 0;
 uint8_t cod_cr_max2 = 0;
 
-//Joep: added old variables to remove bug
-uint8_t  minHue1 = 0;
+//joep : added back old variables as they give undefined error when missing
+uint8_t minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
 uint8_t amount_of_pixels1 = 0;
@@ -80,9 +80,9 @@ int32_t x_c, y_c;
 // define global variables 
 //Tinka: TODO: check if these are okay as they are for now
 struct color_object_t {
-  int32_t left_pixel;
-  int32_t right_pixel;
-  int distance_measure[15];
+  uint16_t left_pixel;
+  uint16_t right_pixel;
+  uint16_t distance_measure[15]; //joep: is this size correct
   bool updated;
 
   //Jagga: This variable inside the global filter was used in line 148
@@ -184,7 +184,7 @@ void color_object_detector_init(void)
     minHue1 = COLOR_OBJECT_DETECTOR_MINHUE;
     maxHue1 = COLOR_OBJECT_DETECTOR_MAXHUE;
     minSat1 = COLOR_OBJECT_DETECTOR_MINSAT;
-   amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
+    amount_of_pixels1 = COLOR_OBJECT_DETECTOR_AOP;
   
     //Tinka: said unused variables (actually I did end up using them hehe):
     cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
@@ -213,82 +213,79 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max,
                               uint8_t minHue, uint8_t maxHue,
-                              uint8_t minSat, uint8_t amount_of_pixels){
-  //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
-  uint32_t orangeCount = 0;
-  int rowList[550];
-  uint8_t *buffer = img->buf;
-  int row;
-  int col;
-  int foundobstacles = 0;
-  
-  int left_pixel;
-  int right_pixel;
-  int min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
-  int index;
+                              uint8_t minSat, uint8_t amount_of_pixels) {
+    //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
+    uint32_t orangeCount = 0;
+    uint8_t rowList[520];
+    uint8_t *buffer = img->buf;
+    uint8_t foundobstacles = 0;
+    int32_t left_pixel;
+    int32_t right_pixel;
+    int32_t min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
+    uint16_t index;
 
-  for(int loop = 0; loop < 15; loop ++){
-    obstacleList[loop] = 0;
-  }
+    for (uint8_t loop = 0; loop < 15; loop++) {
+        obstacleList[loop] = 0;
+    }
 
 
-  //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
-  for (uint16_t row = 0; row < img->h; row++) {
-    for (uint16_t col = 0; col < img->w; col++)
-    {
+    //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
+    for (uint16_t row = 0; row < img->h; row++) {
+        for (uint16_t col = 0; col < img->w; col++) {
 
-      // Check if the color is inside the specified values
-      uint8_t *yp, *up, *vp;
+            // Check if the color is inside the specified values
+            uint8_t *yp, *up, *vp;
 
-      if (col% 2 == 0) {
-        // Even x
-        up = &buffer[row * 2 * img->w + 2 * col];      // U
-        yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
-        vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
-        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-      } else {
-        // Uneven x
-        up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
-        //yp = &buffer[y * 2 * img->w + 2 * col  - 1]; // Y1
-        vp = &buffer[row * 2 * img->w + 2 * col];      // V
-        yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
-      }
-      if ( (*yp >= lum_min) && (*yp <= lum_max) &&
-           (*up >= cb_min ) && (*up <= cb_max ) &&
-           (*vp >= cr_min ) && (*vp <= cr_max )) {
-        orangeCount ++;
-      } else {
-        orangeCount = 0;
-      }
-      if (orangeCount >= amount_of_pixels){
-        rowList[col] = 1;
-      }
-    }     
-  }
-    
-  for(index = 0; index <550; index ++){
-    //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
-    if ((rowList[index] == 0 ) &&
-        (rowList[index+1] == 1)){
-        left_pixel = index+1;
+            if (col % 2 == 0) {
+                // Even x
+                up = &buffer[row * 2 * img->w + 2 * col];      // U
+                yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
+                vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
+                //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+            } else {
+                // Uneven x
+                up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
+                //yp = &buffer[y * 2 * img->w + 2 * col  - 1]; // Y1
+                vp = &buffer[row * 2 * img->w + 2 * col];      // V
+                yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
+            }
+            if ((*yp >= lum_min) && (*yp <= lum_max) &&
+                (*up >= cb_min) && (*up <= cb_max) &&
+                (*vp >= cr_min) && (*vp <= cr_max)) {
+                orangeCount++;
+            } else {
+                orangeCount = 0;
+            }
+            if (orangeCount >= amount_of_pixels) {
+                rowList[col] = 1;
+            }
+        }
+    }
+
+    for (index = 0; index < 550; index++) {
+        //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
+        if ((rowList[index] == 0) &&
+            (rowList[index + 1] == 1)) {
+            left_pixel = index + 1;
         }
 
-    //Tinka: checking where we go from 1 to 0 value (end of obstacle)
-    if ((rowList[index] == 1 ) &&
-            (rowList[index+1] == 0)){
-                right_pixel = index;
-                //Tinka: checking if the obstacle is wide enough to be interesting
-                if (right_pixel - left_pixel >= min_nrofCols){
+        //Tinka: checking where we go from 1 to 0 value (end of obstacle)
+        if ((rowList[index] == 1) &&
+            (rowList[index + 1] == 0)) {
+            right_pixel = index;
+            //Tinka: checking if the obstacle is wide enough to be interesting
+            if (right_pixel - left_pixel >= min_nrofCols) {
                 obstacleList[foundobstacles] = left_pixel;
                 obstacleList[foundobstacles + 1] = right_pixel;
                 obstacleList[foundobstacles + 2] = right_pixel - left_pixel + 1;
                 foundobstacles += 3;
-                }
+            }
 
-            
-  } 
-  //Tinka: wow :D
-  //return obstacleList;
+
+        }
+        //Tinka: wow :D
+        //return obstacleList;
+    }
 }
 
 void color_object_detector_periodic(void)
@@ -313,5 +310,4 @@ void color_object_detector_periodic(void)
         obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14], 0);
     local_filters[0].updated = false;
   }
-}
 }
