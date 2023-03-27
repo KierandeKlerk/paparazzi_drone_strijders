@@ -309,5 +309,6 @@ void color_object_detector_periodic(void)
         obstacleList[10],
         obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14], 0);
     local_filters[0].updated = false;
+    printf(%d,%d,obstacleList[0],obstacleList[1]);
   }
 }
