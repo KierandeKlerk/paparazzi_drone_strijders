@@ -95,7 +95,10 @@ color_count[13] = quality14;
 color_count[14] = quality15;
 }
 
-int loop;
+int collision_threshold = 2; // Minial collison avoidance distance (in m) 
+int frame_center_coordinate = 8; // Safe_center_Coordinate
+int safe_width = 2; //Safe_Distance_Width
+
 void orange_avoider_init(void)
 {
   // Initialise random values
@@ -104,19 +107,6 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-
-
-  VERBOSE_PRINT("********************************************************");
-  VERBOSE_PRINT("*********************I am here**************************");
-int collision_threshold = 2; // Minial collison avoidance distance (in m) 
-int frame_center_coordinate = 8; // Safe_center_Coordinate
-int safe_width = 2; //Safe_Distance_Width
-
-// int i = 0;// counter variable for the next loop
-// int x[15] ={1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};//emulating a single value is coming from the orange_detect_fn
-// for(loop = 0; loop<15; loop++){
-//   printf("%d",color_count[loop]);
-// }
 }
 
 
@@ -139,84 +129,93 @@ int safe_width = 2; //Safe_Distance_Width
 //   }
 //   i = i+3;
 // }
-
-
+int counter = 0;
 void orange_avoider_periodic(void)
 {
+  counter++;
   // only evaluate our state machine if we are flying
   if(!autopilot_in_flight()){
     printf("I am flying?");
     return;
   }
+  // int color_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
+  
+  
+  printf("Counter : ------------%d-------------",counter);
 
-  //compute current color thresholds
-
-  int32_t collision_threshold = 2;        // Distance_to_collision_threshold
-  int32_t frame_center_coordinate = 8;
-  // int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
-
+  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",color_count[0],color_count[1],color_count[2],
+    color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
+    color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
+    color_count[15]); /// //Print all Incoming color coordinate array 
+  ;
   int i = 0;
-  for(i=2; i <=14; i+=3){
-    if (color_count[i] > collision_threshold || color_count[i] ==0)
+  for(i=2; i <=14;){  
+  
+  if (color_count[i] > collision_threshold || color_count[i] ==0)
       {
           //update confidence level 
+          obstacle_free_confidence ++;
           // switch case to SAFE
-          navigation_state = SAFE;
-          printf("I am safe, i am moving forward!I am moving forward!");
-          printf("The distance to obstacle is %d",color_count[i]);//
-
+          // navigation_state = SAFE;
+          // obstacle_free_confidence++;
+          VERBOSE_PRINT("I am Moving forward!, DTO - %d",color_count[i]);
+          // break;
       }
+
     else if(color_count[i] <= collision_threshold)
     {
+      obstacle_free_confidence -= 2; 
+      VERBOSE_PRINT("OBSTACLE FOUND!!!! DTO is %d", color_count[i]);
 
-      printf("OBSTACLE FOUND");
-      printf("The distance to obstacle is %d",color_count[i]);
-      navigation_state = OBSTACLE_FOUND; //    switch case to OBSTACLE Found
-      return i;
-      break;
+      // navigation_state = OBSTACLE_FOUND; //    switch case to OBSTACLE Found
+      // obstacle_free_confidence -= 2;
+      // return i;
+      // break;
     }
-    //i = i+3;
+    i = i+3;
+    
   }
 
+  // if(color_count_min)
 
-
-
- 
-    // bound obstacle_free_confidence
-     Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
-     float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
-
+    // bound obstacle_free_confidence JJJJJJJJJJJJ
+    //  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+    //  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence); JJJJJJJJJJJ
+    float moveDistance = maxDistance;
     switch (navigation_state){
     case SAFE:
       // Move waypoint forward
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0){
+      } else if (obstacle_free_confidence == 0 ){   /////////// Jagga: Need to change here
         navigation_state = OBSTACLE_FOUND;
       } else {
         moveWaypointForward(WP_GOAL, moveDistance);
-      }
-
+      }   
+      /// J : Code came till here
       break;
     case OBSTACLE_FOUND:
       // stop
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_TRAJECTORY);
       //int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
+      VERBOSE_PRINT("**********************************************");
+      VERBOSE_PRINT("!!!!!!!!!!!!!!!!!!!Check Flag~Obstacle Found~!!!!!!!!!!");
+      VERBOSE_PRINT("**********************************************"); 
 
       if(color_count[i-2] < frame_center_coordinate) // this means that the obstabcle 
                                             // is to the left of center line
         {
           //turn right
           printf("Object at Left, Giving command to turn right");
-          chooseRandomIncrementAvoidance_Right();
+          // chooseRandomIncrementAvoidance_Right();
           
         }
         else if(color_count[i-2]<(frame_center_coordinate + safe_width)){
           //turn Left
           printf("Object at Left, Giving command to turn Left");
-          chooseRandomIncrementAvoidance_Left();
+          // chooseRandomIncrementAvoidance_Left();
       }
   
       // if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
@@ -241,13 +240,12 @@ void orange_avoider_periodic(void)
       //       navigation_state = SEARCH_FOR_SAFE_HEADING;
 
       // }
-
-    
       // randomly select new search direction
-      
+      navigation_state = SEARCH_FOR_SAFE_HEADING;
+
       break;
     case SEARCH_FOR_SAFE_HEADING:
-          
+    
       increase_nav_heading(heading_increment);
 
       // make sure we have a couple of good readings before declaring the way safe
@@ -256,15 +254,16 @@ void orange_avoider_periodic(void)
       }
       break;
     case OUT_OF_BOUNDS:
+       
+    //   VERBOSE_PRINT("I am in the OUt of bounds Case");
       increase_nav_heading(heading_increment);
       moveWaypointForward(WP_TRAJECTORY, 1.5f);
 
       if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         // add offset to head back into arena
         increase_nav_heading(heading_increment);
-
         // reset safe counter
-        obstacle_free_confidence = 0;
+        // obstacle_free_confidence = 0;
 
         // ensure direction is safe before continuing
         navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -273,7 +272,6 @@ void orange_avoider_periodic(void)
     default:
       break;
   }
-=======
   
   return;
 }
