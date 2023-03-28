@@ -41,6 +41,8 @@ static uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
+static uint8_t increase_nav_heading_left_turn(float incrementDegrees);
+static uint8_t increase_nav_heading_right_turn(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
 enum navigation_state_t {
@@ -96,7 +98,7 @@ color_count[14] = quality15;
 }
 
 int collision_threshold = 2; // Minial collison avoidance distance (in m) 
-int frame_center_coordinate = 8; // Safe_center_Coordinate
+int frame_center_coordinate = 250; // Safe_center_Coordinate
 int safe_width = 2; //Safe_Distance_Width
 
 void orange_avoider_init(void)
@@ -143,7 +145,7 @@ void orange_avoider_periodic(void)
   
   printf("Counter : ------------%d-------------",counter);
 
-  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",quality1,color_count[1],color_count[2],
+  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",color_count[0],color_count[1],color_count[2],
     color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
     color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
     color_count[15]); /// //Print all Incoming color coordinate array 
@@ -314,7 +316,7 @@ uint8_t increase_nav_heading_right_turn(float incrementDegrees)
 
 uint8_t increase_nav_heading_left_turn(float incrementDegrees)
 {
-  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
+  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
 
   // normalize heading to [-pi, pi]
   FLOAT_ANGLE_NORMALIZE(new_heading);
