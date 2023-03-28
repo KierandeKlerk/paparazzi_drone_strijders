@@ -249,11 +249,23 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                 vp = &buffer[row * 2 * img->w + 2 * col];      // V
                 yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
             }
-            if ((*yp >= lum_min) && (*yp <= lum_max) &&
-                (*up >= cb_min) && (*up <= cb_max) &&
-                (*vp >= cr_min) && (*vp <= cr_max)) {
-                orangeCount++;
-            } else {
+//            if ((*yp >= lum_min) && (*yp <= lum_max) &&
+//                (*up >= cb_min) && (*up <= cb_max) &&
+//                (*vp >= cr_min) && (*vp <= cr_max)) {
+//                orangeCount++;
+//            }
+//this if statement determence the color detection this one below is based on the sim dataset
+              if (*vp >= 168){
+                  if (*vp <= 178){
+                      if (*yp > 70){
+                          orangeCount++;
+                      }
+                  }
+                  else if(*yp >= 80){
+                      orangeCount++;
+                  }
+              }
+            else {
                 orangeCount = 0;
             }
             if (orangeCount >= amount_of_pixels) {
