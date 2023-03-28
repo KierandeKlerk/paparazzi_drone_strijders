@@ -279,12 +279,19 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                 //rowList[col] = 1;
             }
         }
-    for (int i =0; i < 240; i++){
-        printf("\n");
-        for(int j =0; j<520; j++){
-            printf("%d",Joep[i][j]);
+    printf("BEGIN________________________________________________________________________________________");
+//    for (int row =0; row < 240; row++){
+//        //printf("begin new row %d \n",i);
+//        for(int col =0; col<520; col++){
+//            printf("%d,",Joep[row][col]);
+//            if(Joep[row][col])
+//        }
+//    }
+    //joep: Beun solution take middle row and equal to rowList
+        for(int col = 0; col<520; col++){
+            int middle = 120;
+            rowList[col] = Joep[middle][col];
         }
-    }
     for (index = 0; index < 520; index++) {
         //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
         if ((rowList[index] == 0) &&
