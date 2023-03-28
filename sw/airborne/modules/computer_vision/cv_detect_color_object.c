@@ -227,6 +227,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
     int32_t min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
     uint16_t index = 0;
     uint8_t Joep[240][520];
+    uint8_t Joepcolumnlist[520];
 
     for (uint8_t loop = 0; loop < 15; loop++) {
         obstacleList[loop] = 0;
@@ -234,6 +235,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
     //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
     for (uint16_t row = 0; row < img->h; row++) {
         rowList[row] =0;
+        Joepcolumnlist[row]=0;
         for (uint16_t col = 0; col < img->w; col++) {
             //int currentPixel = row + col * img->h
             //check if the color is inside the specified values
@@ -268,6 +270,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                   }
                   else if(*yp >= 80){
                       Joep[col][row] = 1;
+                      Joepcolumnlist[col] +=1;
                       //orangeCount++;
                   }
               }
@@ -275,8 +278,11 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                 Joep[col][row] = 0;
                 //orangeCount = 0;
             }
-            //if (orangeCount >= amount_of_pixels) {
-                //rowList[col] = 1;
+            }
+            for(uint16_t i=0; i<520;i++) {
+                if (Joepcolumnlist[i] >= amount_of_pixels) {
+                    rowList[i] = 1;
+                }
             }
         }
     printf("BEGIN________________________________________________________________________________________");
@@ -288,10 +294,10 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //        }
 //    }
     //joep: Beun solution take middle row and equal to rowList
-        for(int col = 0; col<520; col++){
-            int middle = 120;
-            rowList[col] = Joep[middle][col];
-        }
+//        for(int col = 0; col<520; col++){
+//            int middle = 120;
+//            rowList[col] = Joep[middle][col];
+//        }
     for (index = 0; index < 520; index++) {
         //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
         if ((rowList[index] == 0) &&
