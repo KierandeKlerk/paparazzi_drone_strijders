@@ -155,7 +155,6 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter) // j
   //Tinka: here we add our found variables to the filter. I kept the old filter names to prevent errors, though this might be nice to change sometime
   //Tinka: also commented out old unused filter variables because I lost track of where they're send of to
   pthread_mutex_lock(&mutex);
-
   for(int counter = 0; counter<15; counter++){
     global_filters[filter-1].distance_measure[counter] = obstacleList[counter];
   }
@@ -217,25 +216,32 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
     //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
     uint32_t orangeCount = 0;
     uint8_t rowList[520];
+//    printf("rowlist printing session");
+//    for (int loopyloop; loopyloop <520; loopyloop ++){
+//        printf("%d", rowList[loopyloop]);
+//    }
     uint8_t *buffer = img->buf;
     uint8_t foundobstacles = 0;
-    int32_t left_pixel;
-    int32_t right_pixel;
+    int32_t left_pixel = 0;
+    int32_t right_pixel = 0;
     int32_t min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
-    uint16_t index;
+    uint16_t index = 0;
+    uint8_t Joep[240][520];
+    uint8_t Joepcolumnlist[520];
 
     for (uint8_t loop = 0; loop < 15; loop++) {
         obstacleList[loop] = 0;
     }
-
-
     //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
     for (uint16_t row = 0; row < img->h; row++) {
+        rowList[row] =0;
+        Joepcolumnlist[row]=0;
         for (uint16_t col = 0; col < img->w; col++) {
-
-            // Check if the color is inside the specified values
+            //int currentPixel = row + col * img->h
+            //check if the color is inside the specified values
             uint8_t *yp, *up, *vp;
 
+            //[u,y1,v,y2,u,y3,v,y4]
             if (col % 2 == 0) {
                 // Even x
                 up = &buffer[row * 2 * img->w + 2 * col];      // U
@@ -258,23 +264,41 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
               if (*vp >= 168){
                   if (*vp <= 178){
                       if (*yp > 70){
-                          orangeCount++;
+                          Joep[col][row] = 1;
+                          //orangeCount++;
                       }
                   }
                   else if(*yp >= 80){
-                      orangeCount++;
+                      Joep[col][row] = 1;
+                      Joepcolumnlist[col] +=1;
+                      //orangeCount++;
                   }
               }
             else {
-                orangeCount = 0;
+                Joep[col][row] = 0;
+                //orangeCount = 0;
             }
-            if (orangeCount >= amount_of_pixels) {
-                rowList[col] = 1;
+            }
+            for(uint16_t i=0; i<520;i++) {
+                if (Joepcolumnlist[i] >= amount_of_pixels) {
+                    rowList[i] = 1;
+                }
             }
         }
-    }
-
-    for (index = 0; index < 550; index++) {
+    printf("BEGIN________________________________________________________________________________________");
+//    for (int row =0; row < 240; row++){
+//        //printf("begin new row %d \n",i);
+//        for(int col =0; col<520; col++){
+//            printf("%d,",Joep[row][col]);
+//            if(Joep[row][col])
+//        }
+//    }
+    //joep: Beun solution take middle row and equal to rowList
+//        for(int col = 0; col<520; col++){
+//            int middle = 120;
+//            rowList[col] = Joep[middle][col];
+//        }
+    for (index = 0; index < 520; index++) {
         //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
         if ((rowList[index] == 0) &&
             (rowList[index + 1] == 1)) {
@@ -321,6 +345,7 @@ void color_object_detector_periodic(void)
         obstacleList[10],
         obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14], 0);
     local_filters[0].updated = false;
-    printf("%d,%d",obstacleList[0],obstacleList[1]);
+    //VERBOSE_PRINT("printing left pixel %d and the right pixel %d of the first obstacle found", obstacleList[0], obstacleList[1]);
+    printf("%d,%d",obstacleList[0], obstacleList[1]);
   }
 }
