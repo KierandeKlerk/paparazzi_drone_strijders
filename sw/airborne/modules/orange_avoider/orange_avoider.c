@@ -44,6 +44,8 @@ static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t increase_nav_heading_left_turn(float incrementDegrees);
 static uint8_t increase_nav_heading_right_turn(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
+uint8_t chooseRandomIncrementAvoidance_Right(void);
+uint8_t chooseRandomIncrementAvoidance_Left(void);
 
 enum navigation_state_t {
   SAFE,
@@ -59,8 +61,8 @@ float oa_color_count_frac = 0.18f;
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 int32_t color_count[15] ;                // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
-float heading_increment = 5.f;          // heading angle increment [deg]
-float maxDistance = 2.25;               // max waypoint displacement [m]
+float heading_increment = 10.f;          // heading angle increment [deg]
+float maxDistance = 5;               // max waypoint displacement [m]
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
@@ -97,8 +99,8 @@ color_count[13] = quality14;
 color_count[14] = quality15;
 }
 
-int collision_threshold = 2; // Minial collison avoidance distance (in m) 
-int frame_center_coordinate = 250; // Safe_center_Coordinate
+int collision_threshold = 20; // Minial collison avoidance distance (in m) 
+int frame_center_coordinate = 265; // Safe_center_Coordinate
 int safe_width = 2; //Safe_Distance_Width
 
 void orange_avoider_init(void)
@@ -149,9 +151,11 @@ void orange_avoider_periodic(void)
     color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
     color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
     color_count[15]); /// //Print all Incoming color coordinate array 
-  ;
+  
   int i = 0;
-  for(i=2; i <=14;){  
+
+  for(i=2; i <=14;)
+  {  
   
   if (color_count[i] > collision_threshold || color_count[i] ==0)
       {
@@ -162,7 +166,10 @@ void orange_avoider_periodic(void)
           // obstacle_free_confidence++;
           VERBOSE_PRINT("I am Moving forward!, DTO - %d",color_count[i]);
           // break;
+          
       }
+
+      
 
     else if(color_count[i] <= collision_threshold)
     {
@@ -174,17 +181,35 @@ void orange_avoider_periodic(void)
       // return i;
       // break;
     }
+
+
+    
+      //obstacle_free_confidence_previous_value [j] = obstacle_free_confidence;  
+      //j++;
+
+
+    
+
+    
+    // if (obstacle_free_confidence[j]<obstacle_free_confidence[j-1])
+    // {
+
+    // }
+
     i = i+3;
+    break;
+    
     
   }
 
   // if(color_count_min)
 
     // bound obstacle_free_confidence JJJJJJJJJJJJ
-    //  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
-    //  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence); JJJJJJJJJJJ
-    float moveDistance = maxDistance;
-    switch (navigation_state){
+    Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+    float moveDistance = fminf(maxDistance, 0.4f * obstacle_free_confidence);
+    //float moveDistance = maxDistance;
+    switch (navigation_state)
+    {
     case SAFE:
       // Move waypoint forward
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
@@ -206,46 +231,34 @@ void orange_avoider_periodic(void)
       VERBOSE_PRINT("!!!!!!!!!!!!!!!!!!!Check Flag~Obstacle Found~!!!!!!!!!!");
       VERBOSE_PRINT("**********************************************"); 
 
-      if(color_count[i-2] < frame_center_coordinate) // this means that the obstabcle 
+      if((abs(frame_center_coordinate - color_count[i-2]) < abs(color_count[i-1]-frame_center_coordinate)))// this means that the obstabcle 
                                             // is to the left of center line
         {
-          //turn right
-          printf("Object at Left, Giving command to turn right");
-          // chooseRandomIncrementAvoidance_Right();
-          
+          //turn left
+          printf("Object at Left, Giving command to turn left");
+          chooseRandomIncrementAvoidance_Left();
         }
-        else if(color_count[i-2]<(frame_center_coordinate + safe_width)){
-          //turn Left
-          printf("Object at Left, Giving command to turn Left");
-          // chooseRandomIncrementAvoidance_Left();
+      else if(abs(color_count[i-1]-frame_center_coordinate)<(abs(frame_center_coordinate - color_count[i-2])))
+      {
+          //turn Right
+          printf("Object at Left, Giving command to turn Right");
+          chooseRandomIncrementAvoidance_Right();
       }
   
-      // if (frame_center_coordinate - right_pixel[i] < frame_center_coordinate - left_pixel[i])
-      //     {
-      //       increase_nav_heading_right_turn(heading_increment);
-      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
+      
+      
 
+      else
+         {
+            chooseRandomIncrementAvoidance();
             
-      //     }
-
-      // if (frame_center_coordinate - left_pixel[i]< frame_center_coordinate - right_pixel[i])
-      //     {
-      //       increase_nav_heading_left_turn(heading_increment);
-      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-            
-      //     }
-
-      // else if ()
-      // {
-      //   chooseRandomIncrementAvoidance();
-      //       navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-      // }
+          }
       // randomly select new search direction
+      
       navigation_state = SEARCH_FOR_SAFE_HEADING;
 
       break;
+
     case SEARCH_FOR_SAFE_HEADING:
     
       increase_nav_heading(heading_increment);
@@ -255,7 +268,8 @@ void orange_avoider_periodic(void)
         navigation_state = SAFE;
       }
       break;
-    case OUT_OF_BOUNDS:
+    
+     case OUT_OF_BOUNDS:
        
     //   VERBOSE_PRINT("I am in the OUt of bounds Case");
       increase_nav_heading(heading_increment);
@@ -271,7 +285,9 @@ void orange_avoider_periodic(void)
         navigation_state = SEARCH_FOR_SAFE_HEADING;
       }
       break;
+
     default:
+
       break;
   }
   
@@ -299,35 +315,35 @@ uint8_t increase_nav_heading(float incrementDegrees)
 }
 
 
-uint8_t increase_nav_heading_right_turn(float incrementDegrees)
-{
-  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
+// uint8_t increase_nav_heading_right_turn(float incrementDegrees)
+// {
+//   float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
 
-  // normalize heading to [-pi, pi]
-  FLOAT_ANGLE_NORMALIZE(new_heading);
+//   // normalize heading to [-pi, pi]
+//   FLOAT_ANGLE_NORMALIZE(new_heading);
 
-  // set heading, declared in firmwares/rotorcraft/navigation.h
-  // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
-  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
+//   // set heading, declared in firmwares/rotorcraft/navigation.h
+//   // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
+//   nav_heading = ANGLE_BFP_OF_REAL(new_heading);
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-  return false;
-}
+//   VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+//   return false;
+// }
 
-uint8_t increase_nav_heading_left_turn(float incrementDegrees)
-{
-  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
+// uint8_t increase_nav_heading_left_turn(float incrementDegrees)
+// {
+//   float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
 
-  // normalize heading to [-pi, pi]
-  FLOAT_ANGLE_NORMALIZE(new_heading);
+//   // normalize heading to [-pi, pi]
+//   FLOAT_ANGLE_NORMALIZE(new_heading);
 
-  // set heading, declared in firmwares/rotorcraft/navigation.h
-  // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
-  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
+//   // set heading, declared in firmwares/rotorcraft/navigation.h
+//   // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
+//   nav_heading = ANGLE_BFP_OF_REAL(new_heading);
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-  return false;
-}
+//   VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+//   return false;
+// }
 /*
  * Calculates coordinates of distance forward and sets waypoint 'waypoint' to those coordinates
  */
@@ -380,17 +396,20 @@ uint8_t chooseRandomIncrementAvoidance(void)
     VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
   }
   return false;
-}uint8_t chooseRandomIncrementAvoidance_Right(void)
+}
+
+uint8_t chooseRandomIncrementAvoidance_Right(void)
 {
   // Randomly choose CW avoiding direction
-    heading_increment = 5.f;
+    heading_increment = 10.f;
     VERBOSE_PRINT("Set avoidance increment to: %f\n Right", heading_increment);
   return false;
 }
+
 uint8_t chooseRandomIncrementAvoidance_Left(void)
 {
   // Randomly choose CCW avoiding direction
-    heading_increment = -5.f;
+    heading_increment = -10.f;
     VERBOSE_PRINT("Set avoidance increment to: %f\n Left", heading_increment);
   return false;
 }
