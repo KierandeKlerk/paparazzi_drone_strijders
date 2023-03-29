@@ -24,6 +24,7 @@
 #include "modules/core/abi.h"
 #include <time.h>
 #include <stdio.h>
+#include <math.h>
 
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
@@ -58,11 +59,14 @@ enum navigation_state_t {
 float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
-enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
+enum navigation_state_t navigation_state = SAFE; // start assuming it is safe
 int32_t color_count[15] ;                // orange color count from color filter for obstacle detection
-int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 10.f;          // heading angle increment [deg]
 float maxDistance = 5;               // max waypoint displacement [m]
+//float fov = 2.0943951;          // estimated fov in radians
+//float unitdistance;
+//unitdistance = 260./tanf(fov/2.);
+float unitdistance = 150.111069;
 
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
@@ -102,7 +106,6 @@ color_count[14] = quality15;
 
 int collision_threshold = 20; // Minial collison avoidance distance (in m) 
 int frame_center_coordinate = 265; // Safe_center_Coordinate
-int safe_width = 2; //Safe_Distance_Width
 
 void orange_avoider_init(void)
 {
@@ -134,29 +137,21 @@ void orange_avoider_init(void)
 //   }
 //   i = i+3;
 // }
-int counter = 0;
+
 void orange_avoider_periodic(void)
 {
-  uint8 bigoldobstacle[2] = {0,0}
-  counter++;
   // only evaluate our state machine if we are flying
   if(!autopilot_in_flight()){
     printf("I am flying?");
     return;
   }
   // int color_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
-  
-  
-  printf("Counter : ------------%d-------------",counter);
 
-  printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",color_count[0],color_count[1],color_count[2],
-    color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
-    color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
-    color_count[15]); /// //Print all Incoming color coordinate array 
-
-  for(int i=2; i <=14; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
+  for(int i=2; i <=15; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
   {
       if (color_count[i] > collision_threshold){
+          printf("COLLISION THRESHOLD = %d",collision_threshold);
+          printf("/n %d actual width",color_count[i]);
       navigation_state = OBSTACLE_FOUND;
       }
   }
@@ -164,66 +159,111 @@ void orange_avoider_periodic(void)
   // if(color_count_min)
 
     // bound obstacle_free_confidence JJJJJJJJJJJJ
-    Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
-    float moveDistance = fminf(maxDistance, 0.4f * obstacle_free_confidence);
+    //float moveDistance = fminf(maxDistance, 0.4f * 3); // TODO joep change this logic to scale waypoint->speed
+    float trajectorydistance = 2.5;
     //float moveDistance = maxDistance;
     switch (navigation_state)
     {
     case SAFE:
+      printf("IM SAFE");
       // Move waypoint forward
-      moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
+      moveWaypointForward(WP_TRAJECTORY, trajectorydistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0 ){   /////////// Jagga: Need to change here
-        navigation_state = OBSTACLE_FOUND;
       } else {
-        moveWaypointForward(WP_GOAL, moveDistance);
+        moveWaypointForward(WP_GOAL, trajectorydistance);
       }   
       /// J : Code came till here
       break;
     case OBSTACLE_FOUND:
-      uint16_t biggestgap;
-      int16_t angleincrement;
+      printf("I FOUND Annnnn OBSTACLE");
+      uint16_t biggestgap_unsigned;
+      int16_t biggestgap_signed;
+      int16_t dx;
+      int biggestgap= 0;
+      int valuebiggestgap = 0;
+      float headingchange;
+      int right;
+      int left;
+      int nrofobstacles = 0;
       //TInka logic finding biggest gap
-      angleincrement = (biggestgap - 260)
+      //find the amount of obstacles detected
+      for (int loop = 0; loop < 5; loop++){
+          if (color_count[loop+2] != 0){
+                nrofobstacles ++;
+          }
+        }
+        printf("number of detected obstacles: %d \n", nrofobstacles);
 
-      }
+        for (int loop = 0; loop<(nrofobstacles + 1); loop++){
+            if (nrofobstacles == 0){
+                valuebiggestgap = 520;
+                biggestgap = 260;
 
+            }else{
 
+                //loop for first gap, because the object might already start at 0
+                if (loop == 0){
+                    biggestgap = color_count[0]/2;
+                    valuebiggestgap = color_count[0];
+                }else{
+                    left = color_count[3*(loop-1)+1];
+                    right = color_count[3*(loop-1)+3];
+                    //loop for last gap, because the object might end at 520
+                    if (loop == nrofobstacles) {
+                        //check if gap is bigger than the previously detected one
+                        if ((520 - left) >= valuebiggestgap){
+                            //import values to the biggest gap ones
+                            biggestgap = left + (520-left)/2;
+                            valuebiggestgap = 520 - left;
+                        }
+
+                        //calculation of all the middle gaps
+                    }else{
+                        //again check if the gap is bigger than the previous detected one
+                        if ((right-left) >= valuebiggestgap){
+                            //import values to the biggest gap ones
+                            biggestgap = left + (right-left)/2;
+                            valuebiggestgap = right - left;
+                        }
+
+                    }}}
+        }
+      //Joep cast biggest gap to a signed int
+      biggestgap_signed = (int16_t) biggestgap;
+      dx = (biggestgap_signed - 260);
+      headingchange = atanf((float)dx/unitdistance);
+      increase_nav_heading(headingchange);
+      moveWaypointForward(WP_TRAJECTORY, 1.5f);
+      navigation_state = SAFE;
       break;
 
     case SEARCH_FOR_SAFE_HEADING:
+        navigation_state = SAFE; //wont reach this at this point
+        break;
     
-      increase_nav_heading(heading_increment);
-
-      // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
-        navigation_state = SAFE;
-      }
-      break;
-    
-     case OUT_OF_BOUNDS:
-       
-    //   VERBOSE_PRINT("I am in the OUt of bounds Case");
-      increase_nav_heading(heading_increment);
+    case OUT_OF_BOUNDS:
+        //   VERBOSE_PRINT("I am in the OUt of bounds Case");
+        increase_nav_heading(heading_increment + 20);
+        moveWaypointForward(WP_TRAJECTORY, 1.5f);
+      uint8_t turn = 2;
+      while (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+          if (turn > 253){
+              break;
+          }
+          printf("IM in the loop trying to dance my way out of it");
+          increase_nav_heading(heading_increment*turn + 20);
+          turn +=1;
+          }
       moveWaypointForward(WP_TRAJECTORY, 1.5f);
+      navigation_state = SAFE;
 
-      if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        // add offset to head back into arena
-        increase_nav_heading(heading_increment);
-        // reset safe counter
-        // obstacle_free_confidence = 0;
 
-        // ensure direction is safe before continuing
-        navigation_state = SEARCH_FOR_SAFE_HEADING;
-      }
       break;
 
     default:
-
       break;
   }
-  
   return;
 }
 
