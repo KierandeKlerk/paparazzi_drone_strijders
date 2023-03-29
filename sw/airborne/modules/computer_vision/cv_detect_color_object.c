@@ -71,7 +71,7 @@ uint8_t cod_cr_max2 = 0;
 uint8_t minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
-uint8_t amount_of_pixels1 = 0;
+uint8_t amount_of_pixels1;
 bool cod_draw1 = false;
 bool cod_draw2 = false;
 
@@ -215,27 +215,26 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                               uint8_t minSat, uint8_t amount_of_pixels) {
     //Tinka: here I added the variables that we'll be needing and I removed the useless old ones
     uint32_t orangeCount = 0;
-    uint8_t rowList[520];
-//    printf("rowlist printing session");
+    uint16_t rowlist[520];
+    printf("rowlist printing session");
 //    for (int loopyloop; loopyloop <520; loopyloop ++){
-//        printf("%d", rowList[loopyloop]);
+//        printf("%d \n", rowList[loopyloop]);
 //    }
     uint8_t *buffer = img->buf;
     uint8_t foundobstacles = 0;
     int32_t left_pixel = 0;
     int32_t right_pixel = 0;
     int32_t min_nrofCols = 10; //Tinka: min amount of detected columns in a row for a positive
-    uint16_t index = 0;
+    uint16_t tinka = 0;
     uint8_t Joep[240][520];
     uint8_t Joepcolumnlist[520];
-
+    uint8_t joeprowlist[520];
     for (uint8_t loop = 0; loop < 15; loop++) {
         obstacleList[loop] = 0;
     }
     //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
     for (uint16_t row = 0; row < img->h; row++) {
-        rowList[row] = 0;
-        Joepcolumnlist[row] = 0;
+        Joepcolumnlist[row]=0;
         for (uint16_t col = 0; col < img->w; col++) {
             //int currentPixel = row + col * img->h
             //check if the color is inside the specified values
@@ -260,40 +259,37 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //                (*vp >= cr_min) && (*vp <= cr_max)) {
 //                orangeCount++;
 //            }
-//this if statement determines the color detection this one below is based on the sim dataset
-            if (*vp >= 168) {
-                if (*vp <= 178) {
-                    if (*yp > 70) {
-                        Joep[col][row] = 1;
-                        Joepcolumnlist[row] += 1;
-                        //orangeCount++;
-                    }
-                } else if (*yp >= 80) {
-                    Joep[col][row] = 1;
-                    Joepcolumnlist[row] += 1;
-                    //orangeCount++;
-                }
-            } else {
+//this if statement determence the color detection this one below is based on the sim dataset
+              if (*vp >= 168){
+                  if (*vp <= 178){
+                      if (*yp > 70){
+                          Joep[col][row] = 1;
+                          Joepcolumnlist[row] +=1;
+                          //orangeCount++;
+                      }
+                  }
+                  else if(*yp >= 80){
+                      Joep[col][row] = 1;
+                      Joepcolumnlist[row] +=1;
+                      //orangeCount++;
+                  }
+              }
+            else {
                 Joep[col][row] = 0;
                 //orangeCount = 0;
             }
-        }
-    }
-            for(uint16_t i=0; i<520;i++) {
-                if (Joepcolumnlist[i] >= amount_of_pixels) {
-                    rowList[i] = 1;
-                }
             }
-
-            /*
-             * new idea:
-             *
-             *count green pixels per column
-             * if below threshold, add 1 to rowList
-             * now we also avoid darker obstacles :D
-             *
-             */
-
+            for(uint16_t i=0; i<520;i++) {
+                if (Joepcolumnlist[i] >= 60) {
+                    joeprowlist[i] = 1;
+                }
+                else{
+                    joeprowlist[i] = 0;
+                }
+                printf("JOEP ROW LIST i:%d  value: %d \n",i,Joepcolumnlist[i]);
+            }
+        }
+    printf("BEGIN______________________");
 //    for (int row =0; row < 240; row++){
 //        //printf("begin new row %d \n",i);
 //        for(int col =0; col<520; col++){
@@ -306,17 +302,17 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //            int middle = 120;
 //            rowList[col] = Joep[middle][col];
 //        }
-    for (index = 0; index < 520; index++) {
+    for (tinka=0; tinka < 520; tinka++) {
         //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
-        if ((rowList[index] == 0) &&
-            (rowList[index + 1] == 1)) {
-            left_pixel = index + 1;
+        if ((joeprowlist[tinka] == 0) &&
+            (joeprowlist[tinka + 1] == 1)) {
+            left_pixel = tinka + 1;
         }
 
         //Tinka: checking where we go from 1 to 0 value (end of obstacle)
-        if ((rowList[index] == 1) &&
-            (rowList[index + 1] == 0)) {
-            right_pixel = index;
+        if ((joeprowlist[tinka] == 1) &&
+            (joeprowlist[tinka + 1] == 0)) {
+            right_pixel = tinka;
             //Tinka: checking if the obstacle is wide enough to be interesting
             if (right_pixel - left_pixel >= min_nrofCols) {
                 obstacleList[foundobstacles] = left_pixel;
