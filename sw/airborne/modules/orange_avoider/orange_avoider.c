@@ -25,6 +25,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
@@ -138,6 +139,8 @@ void orange_avoider_init(void)
 //   i = i+3;
 // }
 
+bool wecangoleft = true;
+
 void orange_avoider_periodic(void)
 {
     uint16_t biggestgap_unsigned;
@@ -158,12 +161,12 @@ void orange_avoider_periodic(void)
 
     for(int i=2; i <=15; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
     {
-        if (color_count[i] > collision_threshold){
+        if (color_count[i] > collision_threshold*2){
             printf("\n I FOUND A BIG OBSTACLE");
             //TInka logic finding biggest gap
             //find the amount of obstacles detected
             for (int loop = 0; loop < 5; loop++){
-                if (color_count[loop+2] != 0){
+                if (color_count[(loop)*3+2] != 0){
                     nrofobstacles ++;
                 }
             }
@@ -210,6 +213,7 @@ void orange_avoider_periodic(void)
                 navigation_state = OBSTACLE_FOUND;
 
             }else{
+                wecangoleft = true;
                 printf("\n GAP IS NOT SIGNIFICANT going to save mode ");
                 navigation_state = SAFE;
 
@@ -240,10 +244,22 @@ void orange_avoider_periodic(void)
     case OBSTACLE_FOUND:
         printf("\n IM NOW GOING TO THE GAP");
       //Joep cast biggest gap to a signed int
-      headingchange = atanf((float)dx/unitdistance)*60;
-      increase_nav_heading(headingchange);
-      moveWaypointForward(WP_TRAJECTORY, 2.5f);
-      moveWaypointForward(WP_TRAJECTORY, 2.5f);
+      headingchange = atanf((float) dx / unitdistance) * 20;
+      printf("\n PRINTING HEADING CHANGE : %d", headingchange);
+      if (headingchange > 0){
+          printf("\n WE CAN GO LEFT AGAIN");
+          wecangoleft = true;
+      }
+      if (wecangoleft) {
+          printf("\n something wrong");
+          increase_nav_heading(headingchange);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+      }
+      else {
+          printf("\n WE CANNOT GO LEFT :(");
+          increase_nav_heading(30);
+      }
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
           navigation_state = OUT_OF_BOUNDS;
       }
@@ -259,19 +275,18 @@ void orange_avoider_periodic(void)
     case OUT_OF_BOUNDS:
         printf("\n I AM OUT OF BOUNDS :(");
         //   VERBOSE_PRINT("I am in the OUt of bounds Case");
-        increase_nav_heading(heading_increment + 50);
-        moveWaypointForward(WP_TRAJECTORY, 1.5f);
-      uint8_t turn = 2;
-      while (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-          if (turn > 253){
-              break;
+      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+          increase_nav_heading(20);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          wecangoleft = false;
+          printf("I CAN NO LONGER GO LEFT :(");
           }
-          increase_nav_heading(heading_increment*turn*5 + 20);
-          turn +=1;
-          }
-      printf("\n YAY IM NO LONGER OUT OF BOUNDS");
-      moveWaypointForward(WP_TRAJECTORY, 2.5f);
-      navigation_state = SAFE;
+      else{
+          printf("\n YAY IM NO LONGER OUT OF BOUNDS");
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          navigation_state = SAFE;
+      }
+
 
 
       break;
