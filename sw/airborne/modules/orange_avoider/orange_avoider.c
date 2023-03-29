@@ -64,6 +64,7 @@ int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that 
 float heading_increment = 10.f;          // heading angle increment [deg]
 float maxDistance = 5;               // max waypoint displacement [m]
 
+
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
 /*
@@ -136,6 +137,7 @@ void orange_avoider_init(void)
 int counter = 0;
 void orange_avoider_periodic(void)
 {
+  uint8 bigoldobstacle[2] = {0,0}
   counter++;
   // only evaluate our state machine if we are flying
   if(!autopilot_in_flight()){
@@ -151,55 +153,12 @@ void orange_avoider_periodic(void)
     color_count[3],color_count[4],color_count[5],color_count[6],color_count[7],color_count[8],
     color_count[9],color_count[10],color_count[11],color_count[12],color_count[13],color_count[14],
     color_count[15]); /// //Print all Incoming color coordinate array 
-  
-  int i = 0;
 
-  for(i=2; i <=14;)
-  {  
-  
-  if (color_count[i] > collision_threshold || color_count[i] ==0)
-      {
-          //update confidence level 
-          obstacle_free_confidence ++;
-          // switch case to SAFE
-          // navigation_state = SAFE;
-          // obstacle_free_confidence++;
-          VERBOSE_PRINT("I am Moving forward!, DTO - %d",color_count[i]);
-          // break;
-          
+  for(int i=2; i <=14; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
+  {
+      if (color_count[i] > collision_threshold){
+      navigation_state = OBSTACLE_FOUND;
       }
-
-      
-
-    else if(color_count[i] <= collision_threshold)
-    {
-      obstacle_free_confidence -= 2; 
-      VERBOSE_PRINT("OBSTACLE FOUND!!!! DTO is %d", color_count[i]);
-
-      // navigation_state = OBSTACLE_FOUND; //    switch case to OBSTACLE Found
-      // obstacle_free_confidence -= 2;
-      // return i;
-      // break;
-    }
-
-
-    
-      //obstacle_free_confidence_previous_value [j] = obstacle_free_confidence;  
-      //j++;
-
-
-    
-
-    
-    // if (obstacle_free_confidence[j]<obstacle_free_confidence[j-1])
-    // {
-
-    // }
-
-    i = i+3;
-    break;
-    
-    
   }
 
   // if(color_count_min)
@@ -223,39 +182,13 @@ void orange_avoider_periodic(void)
       /// J : Code came till here
       break;
     case OBSTACLE_FOUND:
-      // stop
-      waypoint_move_here_2d(WP_GOAL);
-      waypoint_move_here_2d(WP_TRAJECTORY);
-      //int colour_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
-      VERBOSE_PRINT("**********************************************");
-      VERBOSE_PRINT("!!!!!!!!!!!!!!!!!!!Check Flag~Obstacle Found~!!!!!!!!!!");
-      VERBOSE_PRINT("**********************************************"); 
+      uint16_t biggestgap;
+      int16_t angleincrement;
+      //TInka logic finding biggest gap
+      angleincrement = (biggestgap - 260)
 
-      if((abs(frame_center_coordinate - color_count[i-2]) < abs(color_count[i-1]-frame_center_coordinate)))// this means that the obstabcle 
-                                            // is to the left of center line
-        {
-          //turn left
-          printf("Object at Left, Giving command to turn left");
-          chooseRandomIncrementAvoidance_Left();
-        }
-      else if(abs(color_count[i-1]-frame_center_coordinate)<(abs(frame_center_coordinate - color_count[i-2])))
-      {
-          //turn Right
-          printf("Object at Left, Giving command to turn Right");
-          chooseRandomIncrementAvoidance_Right();
       }
-  
-      
-      
 
-      else
-         {
-            chooseRandomIncrementAvoidance();
-            
-          }
-      // randomly select new search direction
-      
-      navigation_state = SEARCH_FOR_SAFE_HEADING;
 
       break;
 
@@ -413,43 +346,3 @@ uint8_t chooseRandomIncrementAvoidance_Left(void)
     VERBOSE_PRINT("Set avoidance increment to: %f\n Left", heading_increment);
   return false;
 }
-
-
-
-// Extra NAV(Shub) Code
- // for (i=2 ; i=i+3 ; i < 14)
-  // {
-  //   int obstacle_distance [5] =  colour_count[i]
-  //   continue;
-  // }
-
-// for (i=0 ; i=i+3 ; i < 14)
-  // {
-  //   int left_pixel [5] =  colour_count[i]
-  //   continue;
-  // }
-
-  // for (i=1 ; i=i+3 ; i < 14)
-  // {
-  //   int right_pixel [5] =  colour_count[i]
-  //   continue;
-  // }
-  
-  // for (i=0;i++;i<4)
-  // {
-  //   if (obstacle_distance[i] > collision_threshold || obstacle distance[i]==0)
-  //   {
-  //     obstacle_free_confidence ++ ;
-
-  //   }
-
- 
-  //   else
-  //     {
-  //       obstacle_free_confidence -= 2;
-        
-        
-        
-  //     }
-      
-  //   }

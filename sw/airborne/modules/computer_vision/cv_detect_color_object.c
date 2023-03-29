@@ -260,7 +260,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //                (*vp >= cr_min) && (*vp <= cr_max)) {
 //                orangeCount++;
 //            }
-//this if statement determence the color detection this one below is based on the sim dataset
+//this if statement determines the color detection this one below is based on the sim dataset
               if (*vp >= 168){
                   if (*vp <= 178){
                       if (*yp > 70){
@@ -284,6 +284,15 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                     rowList[i] = 1;
                 }
             }
+
+            /*
+             * new idea:
+             *
+             *count green pixels per column
+             * if below threshold, add 1 to rowList
+             * now we also avoid darker obstacles :D
+             *
+             */
         }
     printf("BEGIN________________________________________________________________________________________");
 //    for (int row =0; row < 240; row++){
