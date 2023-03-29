@@ -272,22 +272,11 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //                orangeCount++;
 //            }
 //this if statement determines the color detection this one below is based on the sim dataset
-              if (*vp >= 168){
-                  if (*vp <= 178){
-                      if (*yp > 70){
-                          Joep[col][row] = 1;
-                          //orangeCount++;
-                      }
-                  }
-                  else if(*yp >= 80){
-                      Joep[col][row] = 1;
-                      Joepcolumnlist[col] +=1;
-                      //orangeCount++;
-                  }
-              }
+            if (isOrange_yuv(yp, up, vp)){
+              Joep[col][row] = 1;
+            }
             else {
-                Joep[col][row] = 0;
-                //orangeCount = 0;
+              Joep[col][row] = 0;
             }
 
             /* Green pixel detection */
@@ -306,15 +295,6 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                     rowList[i] = 1;
                 }
             }
-
-            /*
-             * new idea:
-             *
-             *count green pixels per column
-             * if below threshold, add 1 to rowList
-             * now we also avoid darker obstacles :D
-             *
-             */
 
         }
     printf("BEGIN________________________________________________________________________________________");
@@ -372,10 +352,11 @@ void color_object_detector_periodic(void)
 
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].left_pixel, local_filters[0].right_pixel,
         0, 0, 
-        obstacleList[0],obstacleList[1],obstacleList[2],obstacleList[3],obstacleList[4],
-        obstacleList[5],obstacleList[6],obstacleList[7],obstacleList[8],obstacleList[9],
-        obstacleList[10],
-        obstacleList[11],obstacleList[12],obstacleList[13],obstacleList[14], 0);
+        obstacleList[0],obstacleList[1],obstacleList[2],
+        obstacleList[3],obstacleList[4],obstacleList[5],
+        obstacleList[6],obstacleList[7],obstacleList[8],
+        obstacleList[9],obstacleList[10],obstacleList[11],
+        obstacleList[12],obstacleList[13],obstacleList[14], 0);
     local_filters[0].updated = false;
     //VERBOSE_PRINT("printing left pixel %d and the right pixel %d of the first obstacle found", obstacleList[0], obstacleList[1]);
     printf("%d,%d",obstacleList[0], obstacleList[1]);
@@ -385,6 +366,23 @@ void color_object_detector_periodic(void)
 bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp){
   bool is_green;
   if (*vp >= 168){ // orange values to be changed to green vlaues
+    if (*vp <= 178){
+        if (*yp > 70){
+            is_green = true;
+        }
+    }
+    else if(*yp >= 80){
+        is_green = true;
+    }
+  } else{
+    is_green = false;
+  }
+  return is_green;
+}
+
+bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp){
+  bool is_green;
+  if (*vp >= 168){ 
     if (*vp <= 178){
         if (*yp > 70){
             is_green = true;
