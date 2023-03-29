@@ -244,60 +244,60 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
     }
     //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
     for (uint16_t row = 0; row < img->h; row++) {
-        rowList[row] =0;
-        Joepcolumnlist[row]=0;
-        uint8_t notGreenCounter = 0;
-        for (uint16_t col = img->w-1; col>=0; col++) {
-            //int currentPixel = row + col * img->h
-            //check if the color is inside the specified values
-            uint8_t *yp, *up, *vp;
+      rowList[row] =0;
+      Joepcolumnlist[row]=0;
+      uint8_t notGreenCounter = 0;
+      for (uint16_t col = img->w-1; col>=0; col++) {
+          //int currentPixel = row + col * img->h
+          //check if the color is inside the specified values
+          uint8_t *yp, *up, *vp;
 
-            //[u,y1,v,y2,u,y3,v,y4]
-            if (col % 2 == 0) {
-                // Even x
-                up = &buffer[row * 2 * img->w + 2 * col];      // U
-                yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
-                vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
-                //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-            } else {
-                // Uneven x
-                up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
-                //yp = &buffer[y * 2 * img->w + 2 * col  - 1]; // Y1
-                vp = &buffer[row * 2 * img->w + 2 * col];      // V
-                yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
-            }
+          //[u,y1,v,y2,u,y3,v,y4]
+          if (col % 2 == 0) {
+              // Even x
+              up = &buffer[row * 2 * img->w + 2 * col];      // U
+              yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
+              vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
+              //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+          } else {
+              // Uneven x
+              up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
+              //yp = &buffer[y * 2 * img->w + 2 * col  - 1]; // Y1
+              vp = &buffer[row * 2 * img->w + 2 * col];      // V
+              yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
+          }
 //            if ((*yp >= lum_min) && (*yp <= lum_max) &&
 //                (*up >= cb_min) && (*up <= cb_max) &&
 //                (*vp >= cr_min) && (*vp <= cr_max)) {
 //                orangeCount++;
 //            }
 //this if statement determines the color detection this one below is based on the sim dataset
-            if (isOrange_yuv(yp, up, vp)){
-              Joep[col][row] = 1;
-              Joepcolumnlist[col]++;
-            }
-            else {
-              Joep[col][row] = 0;
-            }
-
-            /* Green pixel detection */
-            if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
-              if (row%HEIGHT_FRACTION==0) {
-                if (isGreen_yuv(yp, up, vp)) {
-                  notGreenCounter = 0;
-                  greenOutline[row/HEIGHT_FRACTION] = row;
-                }
-              }
-
-            }
+          if (isOrange_yuv(yp, up, vp)){
+            Joep[col][row] = 1;
+            Joepcolumnlist[col]++;
           }
-            for(uint16_t i=0; i<520;i++) {
-                if (Joepcolumnlist[i] >= amount_of_pixels) {
-                    rowList[i] = 1;
-                }
+          else {
+            Joep[col][row] = 0;
+          }
+
+          /* Green pixel detection */
+          if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
+            if (row%HEIGHT_FRACTION==0) {
+              if (isGreen_yuv(yp, up, vp)) {
+                notGreenCounter = 0;
+                greenOutline[row/HEIGHT_FRACTION] = row;
+              }
             }
 
-        }
+          }
+      }
+          for(uint16_t i=0; i<520;i++) {
+              if (Joepcolumnlist[i] >= amount_of_pixels) {
+                  rowList[i] = 1;
+              }
+          }
+
+    }
     printf("BEGIN________________________________________________________________________________________");
 //    for (int row =0; row < 240; row++){
 //        //printf("begin new row %d \n",i);
