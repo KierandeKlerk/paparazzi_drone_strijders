@@ -9,7 +9,7 @@
     <define name="COLOR_OBJECT_DETECTOR_MINHUE" value="170" description="minimum hue at the second orange spectrum"/>
     <define name="COLOR_OBJECT_DETECTOR_MAXHUE" value="30" description="maximum hue at the first orange spectrum"/>
     <define name="COLOR_OBJECT_DETECTOR_MINSAT" value="100" description="minimum saturation"/>
-    <define name="COLOR_OBJECT_DETECTOR_AOP" value="70" description="minimum amount of pixels for a column to be detected"/>
+    <define name="COLOR_OBJECT_DETECTOR_AOP" value="20" description="minimum amount of pixels for a column to be detected"/>
 
     <define name="COLOR_OBJECT_DETECTOR_CAMERA1" value="front_camera|bottom_camera" description="Video device to use"/>
     <define name="COLOR_OBJECT_DETECTOR_FPS1" value="0" description="Desired FPS (0: camera rate)"/>
