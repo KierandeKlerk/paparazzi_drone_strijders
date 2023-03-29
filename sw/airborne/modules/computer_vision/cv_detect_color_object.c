@@ -247,7 +247,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
         rowList[row] =0;
         Joepcolumnlist[row]=0;
         uint8_t notGreenCounter = 0;
-        for (uint16_t col = 0; col < img->w; col++) {
+        for (uint16_t col = img->w-1; col>=0; col++) {
             //int currentPixel = row + col * img->h
             //check if the color is inside the specified values
             uint8_t *yp, *up, *vp;
@@ -274,6 +274,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //this if statement determines the color detection this one below is based on the sim dataset
             if (isOrange_yuv(yp, up, vp)){
               Joep[col][row] = 1;
+              Joepcolumnlist[col]++;
             }
             else {
               Joep[col][row] = 0;
