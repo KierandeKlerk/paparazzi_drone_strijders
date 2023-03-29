@@ -53,7 +53,7 @@ static pthread_mutex_t mutex;
 #endif
 
 #define GREEN_PIXEL_COUNTER_STOP 20 // pixels
-#define GREEN_SLOPE_THRESEHOLD 20 // pixels
+#define GREEN_SLOPE_THRESHOLD 20 // pixels
 #define HEIGHT_FRACTION 4
 
 // Filter Settings
@@ -247,9 +247,14 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
       rowList[row] =0;
       Joepcolumnlist[row]=0;
       uint8_t notGreenCounter = 0;
+
+      bool checkGreen = false;
+      if (row%HEIGHT_FRACTION==0) {
+        checkGreen = true;
+      }
       for (uint16_t col = img->w-1; col>=0; col++) {
           //int currentPixel = row + col * img->h
-          //check if the color is inside the specified values
+          //check if the color is inside the specifi)ed values
           uint8_t *yp, *up, *vp;
 
           //[u,y1,v,y2,u,y3,v,y4]
@@ -281,24 +286,26 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
           }
 
           /* Green pixel detection */
-          if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
-            if (row%HEIGHT_FRACTION==0) {
-              if (isGreen_yuv(yp, up, vp)) {
-                notGreenCounter = 0;
-                greenOutline[row/HEIGHT_FRACTION] = row;
-              }
+          if (checkGreen){  
+            if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
+            
+				if (isGreen_yuv(yp, up, vp)) {
+					notGreenCounter = 0;
+					greenOutline[row/HEIGHT_FRACTION] = col;
+				} else {
+					notGreenCounter++;
+				}
             }
 
           }
       }
           for(uint16_t i=0; i<520;i++) {
-              if (Joepcolumnlist[i] >= amount_of_pixels) {
-                  rowList[i] = 1;
-              }
+			if (Joepcolumnlist[i] >= amount_of_pixels) {
+				rowList[i] = 1;
+			}
           }
 
     }
-    printf("BEGIN________________________________________________________________________________________");
 //    for (int row =0; row < 240; row++){
 //        //printf("begin new row %d \n",i);
 //        for(int col =0; col<520; col++){
@@ -311,6 +318,45 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
 //            int middle = 120;
 //            rowList[col] = Joep[middle][col];
 //        }
+    
+    /* Detect dips in green pixel outline 
+	One potential problem arises when there are more than 5 obstacles visible*/
+	
+	//int8_t direction = 0;
+	int8_t prevDirection = 0;
+	bool is_first = true;
+	uint8_t obstacle_list_ind = 0;
+    for (uint8_t outline_ind; outline_ind < img->h/HEIGHT_FRACTION-1; outline_ind++){
+      	uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
+		if(obstacle_list_ind<15){
+			if ((difference>GREEN_SLOPE_THRESHOLD) && is_first){
+				is_first = false;
+				obstacleListGreen[obstacle_list_ind] = 0;
+				obstacleListGreen[obstacle_list_ind+1] = outline_ind*HEIGHT_FRACTION;
+				obstacleListGreen[obstacle_list_ind+2] = outline_ind*HEIGHT_FRACTION;
+				obstacle_list_ind += 3;
+			} else if ((difference< -GREEN_SLOPE_THRESHOLD) && (prevDirection!=-1)){
+				is_first  = false;
+				obstacleListGreen[obstacle_list_ind] = outline_ind*HEIGHT_FRACTION;
+				prevDirection = -1;
+			} else if ((difference>GREEN_SLOPE_THRESHOLD) && (prevDirection==-1)){
+				obstacleListGreen[obstacle_list_ind+1] = outline_ind*HEIGHT_FRACTION;
+				obstacleListGreen[obstacle_list_ind+2] = obstacleListGreen[obstacle_list_ind+1] - obstacleListGreen[obstacle_list_ind];
+				prevDirection = 1;
+				obstacle_list_ind += 3; 	
+			} else if ((difference>GREEN_SLOPE_THRESHOLD) && (prevDirection==1)){
+				obstacleListGreen[obstacle_list_ind-2] = outline_ind*HEIGHT_FRACTION;
+				obstacleListGreen[obstacle_list_ind-1] = obstacleListGreen[obstacle_list_ind-2] - obstacleListGreen[obstacle_list_ind-3];
+			}
+		}
+    }
+	
+	if((prevDirection==-1) && (obstacle_list_ind<15)) {
+		obstacleListGreen[obstacle_list_ind+1] = img->h;
+		obstacleListGreen[obstacle_list_ind+2] = obstacleListGreen[obstacle_list_ind+1] - obstacleListGreen[obstacle_list_ind];
+	}
+
+
     for (index = 0; index < 520; index++) {
         //Tinka: checking where we go from 0 to 1 value (begin of obstacle)
         if ((rowList[index] == 0) &&
