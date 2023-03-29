@@ -52,8 +52,13 @@ static pthread_mutex_t mutex;
 #define COLOR_OBJECT_DETECTOR_FPS2 0 ///< Default FPS (zero means run at camera fps)
 #endif
 
+#define GREEN_PIXEL_COUNTER_STOP 20 // pixels
+#define GREEN_SLOPE_THRESEHOLD 20 // pixels
+#define HEIGHT_FRACTION 4
+
 // Filter Settings
 uint16_t obstacleList[15]; //Tinka: The nr /3 is the max amount of detected obstacles
+uint16_t obstacleListGreen[15];
 uint8_t cod_lum_min1 = 0;
 uint8_t cod_lum_max1 = 0;
 uint8_t cod_cb_min1 = 0;
@@ -228,14 +233,20 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
     uint16_t index = 0;
     uint8_t Joep[240][520];
     uint8_t Joepcolumnlist[520];
+    uint8_t greenOutline[img->h/HEIGHT_FRACTION];
 
     for (uint8_t loop = 0; loop < 15; loop++) {
         obstacleList[loop] = 0;
+        obstacleListGreen[loop] = 0;
+    }
+    for (uint8_t i = 0; i < img->h/HEIGHT_FRACTION; i++) {
+      greenOutline[i] = 0;
     }
     //Tinka: 'y' changed to 'row', 'x' changes to 'col' for my sanity :)
     for (uint16_t row = 0; row < img->h; row++) {
         rowList[row] =0;
         Joepcolumnlist[row]=0;
+        uint8_t notGreenCounter = 0;
         for (uint16_t col = 0; col < img->w; col++) {
             //int currentPixel = row + col * img->h
             //check if the color is inside the specified values
@@ -278,7 +289,18 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
                 Joep[col][row] = 0;
                 //orangeCount = 0;
             }
+
+            /* Green pixel detection */
+            if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
+              if (row%HEIGHT_FRACTION==0) {
+                if (isGreen_yuv(yp, up, vp)) {
+                  notGreenCounter = 0;
+                  greenOutline[row/HEIGHT_FRACTION] = row;
+                }
+              }
+
             }
+          }
             for(uint16_t i=0; i<520;i++) {
                 if (Joepcolumnlist[i] >= amount_of_pixels) {
                     rowList[i] = 1;
@@ -293,6 +315,7 @@ void find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, boo
              * now we also avoid darker obstacles :D
              *
              */
+
         }
     printf("BEGIN________________________________________________________________________________________");
 //    for (int row =0; row < 240; row++){
@@ -357,4 +380,21 @@ void color_object_detector_periodic(void)
     //VERBOSE_PRINT("printing left pixel %d and the right pixel %d of the first obstacle found", obstacleList[0], obstacleList[1]);
     printf("%d,%d",obstacleList[0], obstacleList[1]);
   }
+}
+
+bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp){
+  bool is_green;
+  if (*vp >= 168){ // orange values to be changed to green vlaues
+    if (*vp <= 178){
+        if (*yp > 70){
+            is_green = true;
+        }
+    }
+    else if(*yp >= 80){
+        is_green = true;
+    }
+  } else{
+    is_green = false;
+  }
+  return is_green;
 }
