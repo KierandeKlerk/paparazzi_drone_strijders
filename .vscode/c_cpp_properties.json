@@ -10,19 +10,7 @@
             },
             "includePath": [
                 "${workspaceFolder}",
-                "/usr/local/include/opencv4/**",
-                "${workspaceFolder}/sw/airborne",
-                "${workspaceFolder}/sw/airborne/modules/digital_cam/catia",
-                "${workspaceFolder}/sw/include",
-                "${workspaceFolder}/var/include",
-                "${workspaceFolder}/sw/airborne/arch/chibios",
-                "${workspaceFolder}/sw/ext/chibios/demos/various/RT-ARMCM4-USELIB/rt",
-                "${workspaceFolder}/sw/ext/chibios/os/common/startup/ARMCMx/devices/ADUCM36x",
-                "${workspaceFolder}/sw/ext/chibios/os/hal/templates/board",
-                "${workspaceFolder}/sw/ext/chibios/os/common/ext/ADI/ADUCM36x",
-                "${workspaceFolder}/sw/ext/libopencm3/include/libopencmsis",
-                "${workspaceFolder}/sw/ext/libopencm3/include",
-                "${workspaceFolder}/var/aircrafts/bebop_orange_avoid/nps"
+                "/usr/local/include/opencv4/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",

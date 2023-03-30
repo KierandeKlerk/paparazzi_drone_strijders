@@ -56,8 +56,7 @@ static pthread_mutex_t mutex;
 
 
 
-bool isGreen_yuv(uint8_t*, uint8_t*, uint8_t*);
-bool isOrange_yuv(uint8_t*, uint8_t*, uint8_t*);
+
 
 
 //ENDGOAL: FILL THIS LIST AS FOLLOWS: {left,right,width,left,right,width,...,width} FOR ALL OBSTACLES
@@ -67,6 +66,8 @@ uint16_t obstacleListGreen[15];
 uint8_t greenPixelCounterStop = 20; // pixels
 uint8_t greenSlopeThreshold =  20; // pixels
 uint8_t heightFraction = 4;
+
+bool is_simulation = true;
 
 //FILTER SETTINGS
 uint8_t cod_lum_min1 = 0;
@@ -86,7 +87,6 @@ uint8_t cod_cr_max2 = 0;
 uint8_t minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
-int tinka;
 uint8_t amount_of_pixels1;
 bool cod_draw1 = false;
 bool cod_draw2 = false;
@@ -202,7 +202,7 @@ void find_object_centroid(struct image_t *img) {
     if (row%heightFraction==0) {
       checkGreen = true;
     }
-    for (uint16_t col = img->w-1; col>=0; col++) {
+    for (int16_t col = img->w -1; col>=0; col--) {
         
       //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
       uint8_t *yp, *up, *vp;
@@ -219,18 +219,19 @@ void find_object_centroid(struct image_t *img) {
           vp = &buffer[row * 2 * img->w + 2 * col];      // V
           yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
       }
+      
 
       //CHECKING IF THE COLOR VALUES OF THE CURRENT PIXEL ARE ORANGE
-      if (isOrange_yuv(yp, up, vp)){
+      if (isOrange_yuv(yp, up, vp, is_simulation)){
         //ORANGE! -> + 1 ON THE ORANGEINCOLUMNCOUNTER
         orangeincolumncounter[row] += 1;
       }
 
+
       /* Green pixel detection */
       if (checkGreen){  
         if (notGreenCounter < greenPixelCounterStop){
-          
-          if (isGreen_yuv(yp, up, vp)) {
+          if (isGreen_yuv(yp, up, vp, is_simulation)) {
             notGreenCounter = 0;
             greenOutline[row/heightFraction] = col;
           } else {
@@ -248,7 +249,7 @@ void find_object_centroid(struct image_t *img) {
 	int8_t prevDirection = 0;
 	bool is_first = true;
 	uint8_t obstacle_list_ind = 0;
-    for (uint8_t outline_ind; outline_ind < img->h/heightFraction-1; outline_ind++){
+    for (uint8_t outline_ind = 0; outline_ind < img->h/heightFraction-1; outline_ind++){
       	uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
 		if(obstacle_list_ind<15){
 			if ((difference>greenSlopeThreshold) && is_first){
@@ -291,16 +292,16 @@ void find_object_centroid(struct image_t *img) {
   }
 
    //LOOPING THROUGH OBSTACLEINCOLUMN
-  for (tinka=0; tinka < 520; tinka++) {
+  for (uint32_t ind=0; ind < 520; ind++) {
     //CHECKING WHERE WE GO FROM - TO 1 VALUE (BEGIN OF OBSTACLE)
-    if ((obstacleincolumn[tinka] == 0) && (obstacleincolumn[tinka + 1] == 1)) {
+    if ((obstacleincolumn[ind] == 0) && (obstacleincolumn[ind + 1] == 1)) {
       //STORE AS LEFT PIXEL
-      left_pixel = tinka + 1;
+      left_pixel = ind + 1;
     }
     //CHECKING WHERE WE GO FROM 1 TO 0 VALUE (END OF OBSTACLE)
-    if ((obstacleincolumn[tinka] == 1) && (obstacleincolumn[tinka + 1] == 0)) {
+    if ((obstacleincolumn[ind] == 1) && (obstacleincolumn[ind + 1] == 0)) {
       //STORE AS RIGHT PIXEL
-      right_pixel = tinka;
+      right_pixel = ind;
 
       //CHECKING IF THE OBSTACLE IS WIDE ENOUGH TO BE INTERESTING
       if (right_pixel - left_pixel >= min_nrofCols) {
@@ -339,36 +340,52 @@ void color_object_detector_periodic(void)
   }
 }
 
-bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp){
-  bool is_green;
-  if (*vp >= 168){ // orange values to be changed to green vlaues
-    if (*vp <= 178){
-        if (*yp > 70){
-            is_green = true;
-        }
+bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
+  bool is_green = false;
+  if(is_sim){
+
+    if ((*vp <= 134)&&(*up<=96)){
+      is_green = true;
     }
-    else if(*yp >= 80){
-        is_green = true;
+
+  } else {
+    
+    if((*up<=104)&&(*vp<=143)&&(*yp<=173)){
+      is_green = true;
+    } else if ((*up>104)&&(*up<=107)&&(*vp<=138)){
+      is_green = true;
     }
-  } else{
-    is_green = false;
+  
   }
+
   return is_green;
 }
 
-bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp){
-  bool is_green;
-  if (*vp >= 168){ 
-    if (*vp <= 178){
-        if (*yp > 70){
-            is_green = true;
-        }
+bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
+  bool is_orange = false;
+  if (is_sim) {
+
+    if (*vp >= 168){ 
+      if (*vp <= 178){
+          if (*yp > 70){
+              is_orange = true;
+          }
+      }
+      else if(*yp >= 80){
+          is_orange = true;
+      }
     }
-    else if(*yp >= 80){
-        is_green = true;
+
+  } else {
+
+    if(*vp>148){
+      if((*up<=99)&&(*yp>172)){
+        is_orange = true;
+      } else if((*up>99)&&(*vp>170)){
+        is_orange = true;
+      }
     }
-  } else{
-    is_green = false;
+
   }
-  return is_green;
+  return is_orange;
 }
