@@ -61,10 +61,9 @@ static pthread_mutex_t mutex;
 
 //ENDGOAL: FILL THIS LIST AS FOLLOWS: {left,right,width,left,right,width,...,width} FOR ALL OBSTACLES
 uint16_t obstacleList[15];
-uint16_t obstacleList[15];
 
-uint8_t greenPixelCounterStop = 20; // pixels
-uint8_t greenSlopeThreshold =  20; // pixels
+uint8_t greenPixelCounterStop = 15; // pixels
+uint8_t greenSlopeThreshold =  15; // pixels
 uint8_t heightFraction = 4;
 
 bool is_simulation = true;
