@@ -25,6 +25,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
@@ -138,25 +139,88 @@ void orange_avoider_init(void)
 //   i = i+3;
 // }
 
+bool wecangoleft = true;
+
 void orange_avoider_periodic(void)
 {
+    uint16_t biggestgap_unsigned;
+    int16_t biggestgap_signed;
+    int16_t dx;
+    int biggestgap= 0;
+    int valuebiggestgap = 0;
+    float headingchange;
+    int right;
+    int left;
+    int nrofobstacles = 0;
+
   // only evaluate our state machine if we are flying
   if(!autopilot_in_flight()){
-    printf("I am flying?");
+    printf("\n IM NOT FLYING");
     return;
   }
-  // int color_count [15] = {1,3,4,6,8,1,12,16,2,0,0,0,0,0,0};
 
-  for(int i=2; i <=15; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
-  {
-      if (color_count[i] > collision_threshold){
-          printf("COLLISION THRESHOLD = %d",collision_threshold);
-          printf("/n %d actual width",color_count[i]);
-      navigation_state = OBSTACLE_FOUND;
-      }
-  }
+    for(int i=2; i <=15; i+= 3) //joep if obstacles are far enough don't do anything further logic is in the switch case
+    {
+        if (color_count[i] > collision_threshold*2){
+            printf("\n I FOUND A BIG OBSTACLE");
+            //TInka logic finding biggest gap
+            //find the amount of obstacles detected
+            for (int loop = 0; loop < 5; loop++){
+                if (color_count[(loop)*3+2] != 0){
+                    nrofobstacles ++;
+                }
+            }
+            printf("\n %d OF 'M!!", nrofobstacles);
 
-  // if(color_count_min)
+            for (int loop = 0; loop<(nrofobstacles + 1); loop++){
+                if (nrofobstacles == 0){
+                    valuebiggestgap = 520;
+                    biggestgap = 260;
+
+                }else{
+
+                    //loop for first gap, because the object might already start at 0
+                    if (loop == 0){
+                        biggestgap = color_count[0]/2;
+                        valuebiggestgap = color_count[0];
+                    }else{
+                        left = color_count[3*(loop-1)+1];
+                        right = color_count[3*(loop-1)+3];
+                        //loop for last gap, because the object might end at 520
+                        if (loop == nrofobstacles) {
+                            //check if gap is bigger than the previously detected one
+                            if ((520 - left) >= valuebiggestgap){
+                                //import values to the biggest gap ones
+                                biggestgap = left + (520-left)/2;
+                                valuebiggestgap = 520 - left;
+                            }
+
+                            //calculation of all the middle gaps
+                        }else{
+                            //again check if the gap is bigger than the previous detected one
+                            if ((right-left) >= valuebiggestgap){
+                                //import values to the biggest gap ones
+                                biggestgap = left + (right-left)/2;
+                                valuebiggestgap = right - left;
+                            }
+
+                        }}}
+            }
+            biggestgap_signed = (int16_t) biggestgap;
+            dx = (biggestgap_signed - 260);
+            if(abs(dx)>20){
+                printf("\n GAP IS FAR TO MY RIGHT OR LEFT: %d", dx);
+                navigation_state = OBSTACLE_FOUND;
+
+            }else{
+                wecangoleft = true;
+                printf("\n GAP IS NOT SIGNIFICANT going to save mode ");
+                navigation_state = SAFE;
+
+            }
+            break;
+        }
+    }
 
     // bound obstacle_free_confidence JJJJJJJJJJJJ
     //float moveDistance = fminf(maxDistance, 0.4f * 3); // TODO joep change this logic to scale waypoint->speed
@@ -164,8 +228,9 @@ void orange_avoider_periodic(void)
     //float moveDistance = maxDistance;
     switch (navigation_state)
     {
+
     case SAFE:
-      printf("IM SAFE");
+      printf("\n IM SAFE");
       // Move waypoint forward
       moveWaypointForward(WP_TRAJECTORY, trajectorydistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
@@ -175,88 +240,53 @@ void orange_avoider_periodic(void)
       }   
       /// J : Code came till here
       break;
+
     case OBSTACLE_FOUND:
-      printf("I FOUND Annnnn OBSTACLE");
-      uint16_t biggestgap_unsigned;
-      int16_t biggestgap_signed;
-      int16_t dx;
-      int biggestgap= 0;
-      int valuebiggestgap = 0;
-      float headingchange;
-      int right;
-      int left;
-      int nrofobstacles = 0;
-      //TInka logic finding biggest gap
-      //find the amount of obstacles detected
-      for (int loop = 0; loop < 5; loop++){
-          if (color_count[loop+2] != 0){
-                nrofobstacles ++;
-          }
-        }
-        printf("number of detected obstacles: %d \n", nrofobstacles);
-
-        for (int loop = 0; loop<(nrofobstacles + 1); loop++){
-            if (nrofobstacles == 0){
-                valuebiggestgap = 520;
-                biggestgap = 260;
-
-            }else{
-
-                //loop for first gap, because the object might already start at 0
-                if (loop == 0){
-                    biggestgap = color_count[0]/2;
-                    valuebiggestgap = color_count[0];
-                }else{
-                    left = color_count[3*(loop-1)+1];
-                    right = color_count[3*(loop-1)+3];
-                    //loop for last gap, because the object might end at 520
-                    if (loop == nrofobstacles) {
-                        //check if gap is bigger than the previously detected one
-                        if ((520 - left) >= valuebiggestgap){
-                            //import values to the biggest gap ones
-                            biggestgap = left + (520-left)/2;
-                            valuebiggestgap = 520 - left;
-                        }
-
-                        //calculation of all the middle gaps
-                    }else{
-                        //again check if the gap is bigger than the previous detected one
-                        if ((right-left) >= valuebiggestgap){
-                            //import values to the biggest gap ones
-                            biggestgap = left + (right-left)/2;
-                            valuebiggestgap = right - left;
-                        }
-
-                    }}}
-        }
+        printf("\n IM NOW GOING TO THE GAP");
       //Joep cast biggest gap to a signed int
-      biggestgap_signed = (int16_t) biggestgap;
-      dx = (biggestgap_signed - 260);
-      headingchange = atanf((float)dx/unitdistance);
-      increase_nav_heading(headingchange);
-      moveWaypointForward(WP_TRAJECTORY, 1.5f);
-      navigation_state = SAFE;
-      break;
+      headingchange = atanf((float) dx / unitdistance) * 20;
+      printf("\n PRINTING HEADING CHANGE : %d", headingchange);
+      if (headingchange > 0){
+          printf("\n WE CAN GO LEFT AGAIN");
+          wecangoleft = true;
+      }
+      if (wecangoleft) {
+          printf("\n something wrong");
+          increase_nav_heading(headingchange);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+      }
+      else {
+          printf("\n WE CANNOT GO LEFT :(");
+          increase_nav_heading(30);
+      }
+      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+          navigation_state = OUT_OF_BOUNDS;
+      }
+      else {
+          navigation_state = SAFE;
+      }
+            break;
 
     case SEARCH_FOR_SAFE_HEADING:
         navigation_state = SAFE; //wont reach this at this point
         break;
     
     case OUT_OF_BOUNDS:
+        printf("\n I AM OUT OF BOUNDS :(");
         //   VERBOSE_PRINT("I am in the OUt of bounds Case");
-        increase_nav_heading(heading_increment + 20);
-        moveWaypointForward(WP_TRAJECTORY, 1.5f);
-      uint8_t turn = 2;
-      while (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-          if (turn > 253){
-              break;
+      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+          increase_nav_heading(20);
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          wecangoleft = false;
+          printf("I CAN NO LONGER GO LEFT :(");
           }
-          printf("IM in the loop trying to dance my way out of it");
-          increase_nav_heading(heading_increment*turn + 20);
-          turn +=1;
-          }
-      moveWaypointForward(WP_TRAJECTORY, 1.5f);
-      navigation_state = SAFE;
+      else{
+          printf("\n YAY IM NO LONGER OUT OF BOUNDS");
+          moveWaypointForward(WP_TRAJECTORY, 2.5f);
+          navigation_state = SAFE;
+      }
+
 
 
       break;
@@ -264,7 +294,6 @@ void orange_avoider_periodic(void)
     default:
       break;
   }
-  return;
 }
 
 
@@ -338,9 +367,9 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
   // Now determine where to place the waypoint you want to go to
   new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
   new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
-                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+//  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,
+//                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
+//                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
   return false;
 }
 
@@ -349,8 +378,8 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
-  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-                POS_FLOAT_OF_BFP(new_coor->y));
+//  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
+//                POS_FLOAT_OF_BFP(new_coor->y));
   waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
   return false;
 }
