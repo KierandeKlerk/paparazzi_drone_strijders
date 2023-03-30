@@ -75,6 +75,7 @@ uint8_t cod_cr_max2 = 0;
 uint8_t minHue1 = 0;
 uint8_t maxHue1 = 0;
 uint8_t minSat1 = 0;
+int tinka;
 uint8_t amount_of_pixels1;
 bool cod_draw1 = false;
 bool cod_draw2 = false;

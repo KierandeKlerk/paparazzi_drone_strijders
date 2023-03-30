@@ -208,7 +208,7 @@ void orange_avoider_periodic(void)
             }
             biggestgap_signed = (int16_t) biggestgap;
             dx = (biggestgap_signed - 260);
-            if(abs(dx)>30){
+            if(abs(dx)>20){
                 printf("\n GAP IS FAR TO MY RIGHT OR LEFT: %d", dx);
                 navigation_state = OBSTACLE_FOUND;
 
