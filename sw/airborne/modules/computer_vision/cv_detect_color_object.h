@@ -52,7 +52,6 @@ extern bool cod_draw2;
 // Module functions
 extern void color_object_detector_init(void);
 extern void color_object_detector_periodic(void);
-bool isGreen_yuv(uint8_t*, uint8_t*, uint8_t*);
-bool isOrange_yuv(uint8_t*, uint8_t*, uint8_t*);
+
 
 #endif /* COLOR_OBJECT_DETECTOR_CV_H */

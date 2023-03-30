@@ -54,13 +54,19 @@ static pthread_mutex_t mutex;
 #define COLOR_OBJECT_DETECTOR_FPS2 0 ///< Default FPS (zero means run at camera fps)
 #endif
 
-#define GREEN_PIXEL_COUNTER_STOP 20 // pixels
-#define GREEN_SLOPE_THRESHOLD 20 // pixels
-#define HEIGHT_FRACTION 4
+
+
+bool isGreen_yuv(uint8_t*, uint8_t*, uint8_t*);
+bool isOrange_yuv(uint8_t*, uint8_t*, uint8_t*);
+
 
 //ENDGOAL: FILL THIS LIST AS FOLLOWS: {left,right,width,left,right,width,...,width} FOR ALL OBSTACLES
 uint16_t obstacleList[15];
 uint16_t obstacleListGreen[15];
+
+uint8_t greenPixelCounterStop = 20; // pixels
+uint8_t greenSlopeThreshold =  20; // pixels
+uint8_t heightFraction = 4;
 
 //FILTER SETTINGS
 uint8_t cod_lum_min1 = 0;
@@ -174,7 +180,7 @@ void find_object_centroid(struct image_t *img) {
   int32_t min_nrofCols = 10;          //MIN AMOUNT OF POSITIVE COLUMNS IN A ROW TO DETECT IT AS AN OBSTACLE
   uint8_t orangeincolumncounter[520]; //ARRAY CONTAINING THE AMOUNT OF ORANGE PIXELS DETECTED IN A ROW
   uint8_t obstacleincolumn[520];      //ARRAY CONTAINING A BINARY FOR EVERY ROW. 1 -> POLE DETECTED. 0 -> NO POLE DETECTED
-  uint8_t greenOutline[img->h/HEIGHT_FRACTION];
+  uint8_t greenOutline[img->h/heightFraction];
 
 
   //THIS LOOP EMPTIES THE OBSTACLE LIST
@@ -182,7 +188,7 @@ void find_object_centroid(struct image_t *img) {
       obstacleList[loop] = 0;
       obstacleListGreen[loop] = 0;
   }
-  for (uint8_t i = 0; i < img->h/HEIGHT_FRACTION; i++) {
+  for (uint8_t i = 0; i < img->h/heightFraction; i++) {
     greenOutline[i] = 0;
   }
 
@@ -193,7 +199,7 @@ void find_object_centroid(struct image_t *img) {
     uint8_t notGreenCounter = 0;
 
     bool checkGreen = false;
-    if (row%HEIGHT_FRACTION==0) {
+    if (row%heightFraction==0) {
       checkGreen = true;
     }
     for (uint16_t col = img->w-1; col>=0; col++) {
@@ -222,11 +228,11 @@ void find_object_centroid(struct image_t *img) {
 
       /* Green pixel detection */
       if (checkGreen){  
-        if (notGreenCounter < GREEN_PIXEL_COUNTER_STOP){
+        if (notGreenCounter < greenPixelCounterStop){
           
           if (isGreen_yuv(yp, up, vp)) {
             notGreenCounter = 0;
-            greenOutline[row/HEIGHT_FRACTION] = col;
+            greenOutline[row/heightFraction] = col;
           } else {
             notGreenCounter++;
           }
@@ -242,26 +248,26 @@ void find_object_centroid(struct image_t *img) {
 	int8_t prevDirection = 0;
 	bool is_first = true;
 	uint8_t obstacle_list_ind = 0;
-    for (uint8_t outline_ind; outline_ind < img->h/HEIGHT_FRACTION-1; outline_ind++){
+    for (uint8_t outline_ind; outline_ind < img->h/heightFraction-1; outline_ind++){
       	uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
 		if(obstacle_list_ind<15){
-			if ((difference>GREEN_SLOPE_THRESHOLD) && is_first){
+			if ((difference>greenSlopeThreshold) && is_first){
 				is_first = false;
 				obstacleListGreen[obstacle_list_ind] = 0;
-				obstacleListGreen[obstacle_list_ind+1] = outline_ind*HEIGHT_FRACTION;
-				obstacleListGreen[obstacle_list_ind+2] = outline_ind*HEIGHT_FRACTION;
+				obstacleListGreen[obstacle_list_ind+1] = outline_ind*heightFraction;
+				obstacleListGreen[obstacle_list_ind+2] = outline_ind*heightFraction;
 				obstacle_list_ind += 3;
-			} else if ((difference< -GREEN_SLOPE_THRESHOLD) && (prevDirection!=-1)){
+			} else if ((difference< -greenSlopeThreshold) && (prevDirection!=-1)){
 				is_first  = false;
-				obstacleListGreen[obstacle_list_ind] = outline_ind*HEIGHT_FRACTION;
+				obstacleListGreen[obstacle_list_ind] = outline_ind*heightFraction;
 				prevDirection = -1;
-			} else if ((difference>GREEN_SLOPE_THRESHOLD) && (prevDirection==-1)){
-				obstacleListGreen[obstacle_list_ind+1] = outline_ind*HEIGHT_FRACTION;
+			} else if ((difference>greenSlopeThreshold) && (prevDirection==-1)){
+				obstacleListGreen[obstacle_list_ind+1] = outline_ind*heightFraction;
 				obstacleListGreen[obstacle_list_ind+2] = obstacleListGreen[obstacle_list_ind+1] - obstacleListGreen[obstacle_list_ind];
 				prevDirection = 1;
 				obstacle_list_ind += 3; 	
-			} else if ((difference>GREEN_SLOPE_THRESHOLD) && (prevDirection==1)){
-				obstacleListGreen[obstacle_list_ind-2] = outline_ind*HEIGHT_FRACTION;
+			} else if ((difference>greenSlopeThreshold) && (prevDirection==1)){
+				obstacleListGreen[obstacle_list_ind-2] = outline_ind*heightFraction;
 				obstacleListGreen[obstacle_list_ind-1] = obstacleListGreen[obstacle_list_ind-2] - obstacleListGreen[obstacle_list_ind-3];
 			}
 		}
