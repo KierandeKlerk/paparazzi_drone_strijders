@@ -61,13 +61,14 @@ static pthread_mutex_t mutex;
 
 //ENDGOAL: FILL THIS LIST AS FOLLOWS: {left,right,width,left,right,width,...,width} FOR ALL OBSTACLES
 uint16_t obstacleList[15];
-uint16_t obstacleListGreen[15];
+uint16_t obstacleList[15];
 
 uint8_t greenPixelCounterStop = 20; // pixels
 uint8_t greenSlopeThreshold =  20; // pixels
 uint8_t heightFraction = 4;
 
 bool is_simulation = true;
+bool use_orange = true;
 
 //FILTER SETTINGS
 uint8_t cod_lum_min1 = 0;
@@ -186,56 +187,84 @@ void find_object_centroid(struct image_t *img) {
   //THIS LOOP EMPTIES THE OBSTACLE LIST
   for (uint8_t loop = 0; loop < 15; loop++) {
       obstacleList[loop] = 0;
-      obstacleListGreen[loop] = 0;
   }
   for (uint8_t i = 0; i < img->h/heightFraction; i++) {
     greenOutline[i] = 0;
   }
 
-  //HERE WE LOOP THROUGH ALL 520 ROWS
-  for (uint16_t row = 0; row < img->h; row++) {
-    //ORANGE IN COLUMN COUNTER IS SET TO 0 FOR THE NEXT COLUMN
-    orangeincolumncounter[row] = 0;
-    uint8_t notGreenCounter = 0;
 
-    bool checkGreen = false;
-    if (row%heightFraction==0) {
-      checkGreen = true;
-    }
-    for (int16_t col = img->w -1; col>=0; col--) {
-        
-      //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
-      uint8_t *yp, *up, *vp;
+  if (use_orange){
+    
+    //HERE WE LOOP THROUGH ALL 520 ROWS
+    for (uint16_t row = 0; row < img->h; row++) {
+      //ORANGE IN COLUMN COUNTER IS SET TO 0 FOR THE NEXT COLUMN
+      orangeincolumncounter[row] = 0;
 
-      //OBTAINING THE CORRECT COLOR VALUES FOR THE CURRENT PIXEL
-      if (col % 2 == 0) {
+      for (uint16_t col = 0; col<img->h; col++) {
+          
+        //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
+        uint8_t *yp, *up, *vp;
+
+        //OBTAINING THE CORRECT COLOR VALUES FOR THE CURRENT PIXEL
+        if (col % 2 == 0) {
           // EVEN COL
           up = &buffer[row * 2 * img->w + 2 * col];      // U
           yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
           vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
-      } else {
+        } else {
           // UNEVEN COL
           up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
           vp = &buffer[row * 2 * img->w + 2 * col];      // V
           yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
+        }
+        
+
+        //CHECKING IF THE COLOR VALUES OF THE CURRENT PIXEL ARE ORANGE
+        if (isOrange_yuv(yp, up, vp, is_simulation)){
+          //ORANGE! -> + 1 ON THE ORANGEINCOLUMNCOUNTER
+          orangeincolumncounter[row] += 1;
+        }
       }
-      
+    }
 
-      //CHECKING IF THE COLOR VALUES OF THE CURRENT PIXEL ARE ORANGE
-      if (isOrange_yuv(yp, up, vp, is_simulation)){
-        //ORANGE! -> + 1 ON THE ORANGEINCOLUMNCOUNTER
-        orangeincolumncounter[row] += 1;
+  } else {
+    
+     //HERE WE LOOP THROUGH ALL 520 ROWS
+    for (uint16_t row = 0; row < img->h; row++) {
+      uint8_t notGreenCounter = 0;
+
+      bool checkGreen = false;
+      if (row%heightFraction==0) {
+        checkGreen = true;
       }
+      for (int32_t col = img->w -1; col>=0; col--) {
+          
+        //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
+        uint8_t *yp, *up, *vp;
 
+        //OBTAINING THE CORRECT COLOR VALUES FOR THE CURRENT PIXEL
+        if (col % 2 == 0) {
+          // EVEN COL
+          up = &buffer[row * 2 * img->w + 2 * col];      // U
+          yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y1
+          vp = &buffer[row * 2 * img->w + 2 * col + 2];  // V
+        } else {
+          // UNEVEN COL
+          up = &buffer[row * 2 * img->w + 2 * col - 2];  // U
+          vp = &buffer[row * 2 * img->w + 2 * col];      // V
+          yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
+        }
+        
 
-      /* Green pixel detection */
-      if (checkGreen){  
-        if (notGreenCounter < greenPixelCounterStop){
-          if (isGreen_yuv(yp, up, vp, is_simulation)) {
-            notGreenCounter = 0;
-            greenOutline[row/heightFraction] = col;
-          } else {
-            notGreenCounter++;
+        //CHECKING IF THE COLOR VALUES OF THE CURRENT PIXEL ARE GREEN
+        if (checkGreen){  
+          if (notGreenCounter < greenPixelCounterStop){
+            if (isGreen_yuv(yp, up, vp, is_simulation)) {
+              notGreenCounter = 0;
+              greenOutline[row/heightFraction] = col;
+            } else {
+              notGreenCounter++;
+            }
           }
         }
       }
@@ -244,72 +273,75 @@ void find_object_centroid(struct image_t *img) {
   //WE HAVE NOW LOOPED ALL THE PIXELS, TIME TO USE THE FOUND VALUES
 
  
-  //Detect dips in green pixel outline. One potential problem arises when there are more than 5 obstacles visible
-
-	int8_t prevDirection = 0;
-	bool is_first = true;
-	uint8_t obstacle_list_ind = 0;
-    for (uint8_t outline_ind = 0; outline_ind < img->h/heightFraction-1; outline_ind++){
-      	uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
-		if(obstacle_list_ind<15){
-			if ((difference>greenSlopeThreshold) && is_first){
-				is_first = false;
-				obstacleListGreen[obstacle_list_ind] = 0;
-				obstacleListGreen[obstacle_list_ind+1] = outline_ind*heightFraction;
-				obstacleListGreen[obstacle_list_ind+2] = outline_ind*heightFraction;
-				obstacle_list_ind += 3;
-			} else if ((difference< -greenSlopeThreshold) && (prevDirection!=-1)){
-				is_first  = false;
-				obstacleListGreen[obstacle_list_ind] = outline_ind*heightFraction;
-				prevDirection = -1;
-			} else if ((difference>greenSlopeThreshold) && (prevDirection==-1)){
-				obstacleListGreen[obstacle_list_ind+1] = outline_ind*heightFraction;
-				obstacleListGreen[obstacle_list_ind+2] = obstacleListGreen[obstacle_list_ind+1] - obstacleListGreen[obstacle_list_ind];
-				prevDirection = 1;
-				obstacle_list_ind += 3; 	
-			} else if ((difference>greenSlopeThreshold) && (prevDirection==1)){
-				obstacleListGreen[obstacle_list_ind-2] = outline_ind*heightFraction;
-				obstacleListGreen[obstacle_list_ind-1] = obstacleListGreen[obstacle_list_ind-2] - obstacleListGreen[obstacle_list_ind-3];
-			}
-		}
-  }
-	
-	if((prevDirection==-1) && (obstacle_list_ind<15)) {
-		obstacleListGreen[obstacle_list_ind+1] = img->h;
-		obstacleListGreen[obstacle_list_ind+2] = obstacleListGreen[obstacle_list_ind+1] - obstacleListGreen[obstacle_list_ind];
-	}
-
-  //FOR EVERY ROW CHECK IF THE AMOUNT OF ORANGE IS ABOVE CERTAIN THRESHOLD
-  for(uint16_t i=0; i<520;i++) {
-    if (orangeincolumncounter[i] >= 60) {
-      //YES! -> OBSTACLEINCOLUMN[i] = 1 
-      obstacleincolumn[i] = 1;
+  if(!use_orange) {
+    //Detect dips in green pixel outline. One potential problem arises when there are more than 5 obstacles visible
+    int8_t prevDirection = 0;
+    bool is_first = true;
+    uint8_t obstacle_list_ind = 0;
+      for (uint8_t outline_ind = 0; outline_ind < img->h/heightFraction-1; outline_ind++){
+          uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
+      if(obstacle_list_ind<15){
+        if ((difference>greenSlopeThreshold) && is_first){
+          is_first = false;
+          obstacleList[obstacle_list_ind] = 0;
+          obstacleList[obstacle_list_ind+1] = outline_ind*heightFraction;
+          obstacleList[obstacle_list_ind+2] = outline_ind*heightFraction;
+          obstacle_list_ind += 3;
+        } else if ((difference< -greenSlopeThreshold) && (prevDirection!=-1)){
+          is_first  = false;
+          obstacleList[obstacle_list_ind] = outline_ind*heightFraction;
+          prevDirection = -1;
+        } else if ((difference>greenSlopeThreshold) && (prevDirection==-1)){
+          obstacleList[obstacle_list_ind+1] = outline_ind*heightFraction;
+          obstacleList[obstacle_list_ind+2] = obstacleList[obstacle_list_ind+1] - obstacleList[obstacle_list_ind];
+          prevDirection = 1;
+          obstacle_list_ind += 3; 	
+        } else if ((difference>greenSlopeThreshold) && (prevDirection==1)){
+          obstacleList[obstacle_list_ind-2] = outline_ind*heightFraction;
+          obstacleList[obstacle_list_ind-1] = obstacleList[obstacle_list_ind-2] - obstacleList[obstacle_list_ind-3];
+        }
+      }
     }
-    else{
-      //NO! -> NO OBSTACLE FOUND IN THIS ROW
-      obstacleincolumn[i] = 0;
-    }
-  }
 
-   //LOOPING THROUGH OBSTACLEINCOLUMN
-  for (uint32_t ind=0; ind < 520; ind++) {
-    //CHECKING WHERE WE GO FROM - TO 1 VALUE (BEGIN OF OBSTACLE)
-    if ((obstacleincolumn[ind] == 0) && (obstacleincolumn[ind + 1] == 1)) {
-      //STORE AS LEFT PIXEL
-      left_pixel = ind + 1;
+    if((prevDirection==-1) && (obstacle_list_ind<15)) {
+      obstacleList[obstacle_list_ind+1] = img->h;
+      obstacleList[obstacle_list_ind+2] = obstacleList[obstacle_list_ind+1] - obstacleList[obstacle_list_ind];
     }
-    //CHECKING WHERE WE GO FROM 1 TO 0 VALUE (END OF OBSTACLE)
-    if ((obstacleincolumn[ind] == 1) && (obstacleincolumn[ind + 1] == 0)) {
-      //STORE AS RIGHT PIXEL
-      right_pixel = ind;
 
-      //CHECKING IF THE OBSTACLE IS WIDE ENOUGH TO BE INTERESTING
-      if (right_pixel - left_pixel >= min_nrofCols) {
-        //YES! -> ADDED TO OBSTACLELIST
-        obstacleList[foundobstacles] = left_pixel;
-        obstacleList[foundobstacles + 1] = right_pixel;
-        obstacleList[foundobstacles + 2] = right_pixel - left_pixel + 1;
-        foundobstacles += 3;
+  } else {
+
+    //FOR EVERY ROW CHECK IF THE AMOUNT OF ORANGE IS ABOVE CERTAIN THRESHOLD
+    for(uint16_t i=0; i<520;i++) {
+      if (orangeincolumncounter[i] >= 60) {
+        //YES! -> OBSTACLEINCOLUMN[i] = 1 
+        obstacleincolumn[i] = 1;
+      }
+      else{
+        //NO! -> NO OBSTACLE FOUND IN THIS ROW
+        obstacleincolumn[i] = 0;
+      }
+    }
+
+    //LOOPING THROUGH OBSTACLEINCOLUMN
+    for (uint32_t ind=0; ind < 520; ind++) {
+      //CHECKING WHERE WE GO FROM - TO 1 VALUE (BEGIN OF OBSTACLE)
+      if ((obstacleincolumn[ind] == 0) && (obstacleincolumn[ind + 1] == 1)) {
+        //STORE AS LEFT PIXEL
+        left_pixel = ind + 1;
+      }
+      //CHECKING WHERE WE GO FROM 1 TO 0 VALUE (END OF OBSTACLE)
+      if ((obstacleincolumn[ind] == 1) && (obstacleincolumn[ind + 1] == 0)) {
+        //STORE AS RIGHT PIXEL
+        right_pixel = ind;
+
+        //CHECKING IF THE OBSTACLE IS WIDE ENOUGH TO BE INTERESTING
+        if (right_pixel - left_pixel >= min_nrofCols) {
+          //YES! -> ADDED TO OBSTACLELIST
+          obstacleList[foundobstacles] = left_pixel;
+          obstacleList[foundobstacles + 1] = right_pixel;
+          obstacleList[foundobstacles + 2] = right_pixel - left_pixel + 1;
+          foundobstacles += 3;
+        }
       }
     }
   }
