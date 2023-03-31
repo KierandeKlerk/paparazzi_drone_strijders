@@ -62,6 +62,7 @@ static pthread_mutex_t mutex;
 //ENDGOAL: FILL THIS LIST AS FOLLOWS: {left,right,width,left,right,width,...,width} FOR ALL OBSTACLES
 uint16_t obstacleList[15];
 
+// Hyper parameters for the green gap detector
 uint8_t greenPixelCounterStop = 15; // pixels
 uint8_t greenSlopeThreshold =  15; // pixels
 uint8_t heightFraction = 4;
@@ -238,8 +239,9 @@ void find_object_centroid(struct image_t *img) {
       bool checkGreen = false;
       if (row%heightFraction==0) {
         checkGreen = true;
+        // Only execute check for every 4th pixel in width
       }
-      for (int32_t col = img->w -1; col>=0; col--) {
+      for (int32_t col = img->w -1; col>=0; col--) { // Loop over the pixels from the bottom to the top of the image 
           
         //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
         uint8_t *yp, *up, *vp;
@@ -262,10 +264,10 @@ void find_object_centroid(struct image_t *img) {
         if (checkGreen){  
           if (notGreenCounter < greenPixelCounterStop){
             if (isGreen_yuv(yp, up, vp, is_simulation)) {
-              notGreenCounter = 0;
-              greenOutline[row/heightFraction] = col;
+              notGreenCounter = 0; // Reset counter to 0
+              greenOutline[row/heightFraction] = col; // Store pixel coordinate
             } else {
-              notGreenCounter++;
+              notGreenCounter++; // If the pixel is not green, increment counter, when the counter has reached the threshold, the outline is considere to be found in this column of the image
             }
           }
         }
@@ -277,41 +279,65 @@ void find_object_centroid(struct image_t *img) {
 
  
   if(!use_orange) {
+    // Green gap detection logic to run when not using orange detector
+
     //Detect dips in green pixel outline. One potential problem arises when there are more than 5 obstacles visible and it doesn't really work
     int8_t prevDirection = 0;
     bool is_first = true;
     uint8_t obstacle_list_ind = 0;
-      for (uint8_t outline_ind = 0; outline_ind < img->h/heightFraction-1; outline_ind++){
-          uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind];
-      if(obstacle_list_ind<15){
-        if ((difference>greenSlopeThreshold) && is_first){
+
+    // Loop over all entries in greenOutline except the last one
+    for (uint8_t outline_ind = 0; outline_ind < img->h/heightFraction-1; outline_ind++){
+      
+      uint8_t difference = greenOutline[outline_ind+1] - greenOutline[outline_ind]; // Calculate the difference between this and next entry
+
+      if(obstacle_list_ind<15){ // Only continue if there is still space in the obstacleList (mainly as failsafe)
+
+        if ((difference>greenSlopeThreshold) && is_first){ // If the first big difference is going upwards (indicating an obstacle that stretches out beyond the frame)
           is_first = false;
+          // Store leftmost pixel, rightmost pixel and width of obstacle
           obstacleList[obstacle_list_ind] = 0;
           obstacleList[obstacle_list_ind+1] = outline_ind*heightFraction;
           obstacleList[obstacle_list_ind+2] = outline_ind*heightFraction;
+          
+          prevDirection = 1; // Variable keeping track of the previous slope direction
+
+          // Increment the obstacle list index for the next obstacle
           obstacle_list_ind += 3;
-        } else if ((difference< -greenSlopeThreshold) && (prevDirection!=-1)){
+
+        } else if ((difference< -greenSlopeThreshold) && (prevDirection!=-1)){ // If the slope goes downwards fast enough, it is considered to be the left side of an obstacle
           is_first  = false;
+
+          // Store the leftmost pixel of the obstacle and the direction of the slope
           obstacleList[obstacle_list_ind] = outline_ind*heightFraction;
           prevDirection = -1;
-        } else if ((difference>greenSlopeThreshold) && (prevDirection==-1)){
+
+        } else if ((difference>greenSlopeThreshold) && (prevDirection==-1)){  // If the slope goes back up after having gone done, it is considered to be the right side of an obstacle
+          // Store rightmost pixel and obstacle width + slope direction
           obstacleList[obstacle_list_ind+1] = outline_ind*heightFraction;
           obstacleList[obstacle_list_ind+2] = obstacleList[obstacle_list_ind+1] - obstacleList[obstacle_list_ind];
           prevDirection = 1;
+
+          // Increment obstacleList index
           obstacle_list_ind += 3; 	
-        } else if ((difference>greenSlopeThreshold) && (prevDirection==1)){
+
+        } else if ((difference>greenSlopeThreshold) && (prevDirection==1)){ // If the slope is found to go up further after having gone up previously
+          // Replace rightmost pixel and obstacle width 
           obstacleList[obstacle_list_ind-2] = outline_ind*heightFraction;
           obstacleList[obstacle_list_ind-1] = obstacleList[obstacle_list_ind-2] - obstacleList[obstacle_list_ind-3];
         }
+      
       }
     }
 
-    if((prevDirection==-1) && (obstacle_list_ind<15)) {
+    if((prevDirection==-1) && (obstacle_list_ind<15)) { // If the last slope went downwards beyond the threshold, it is assumed there is an obstacle extending beyond the right side of the frame
+      // Replace rightmost pixel and obstacle width
       obstacleList[obstacle_list_ind+1] = img->h;
       obstacleList[obstacle_list_ind+2] = obstacleList[obstacle_list_ind+1] - obstacleList[obstacle_list_ind];
     }
 
   } else {
+    // Orange obstacle detection logic to be used when using orange detector
 
     //FOR EVERY ROW CHECK IF THE AMOUNT OF ORANGE IS ABOVE CERTAIN THRESHOLD
     for(uint16_t i=0; i<520;i++) {
@@ -376,15 +402,23 @@ void color_object_detector_periodic(void)
 }
 
 bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
+  // This function checks whether the given combination of YUV values makes an green pixel
+
+
   bool is_green = false;
+  // Check whether we are running in a simulation, the values are slightly different for simulation and real world camerashots
+  // All values are determined by training a decision tree classifier on a set of images where a mask indicating as a label outlining the objects with pixels that we want to classify as green
+  
   if(is_sim){
 
+    // Classification using simulation pixel values
     if ((*vp <= 134)&&(*up<=96)){
       is_green = true;
     }
 
   } else {
     
+    // Classification using real world pixel values
     if((*up<=104)&&(*vp<=143)&&(*yp<=173)){
       is_green = true;
     } else if ((*up>104)&&(*up<=107)&&(*vp<=138)){
@@ -397,9 +431,15 @@ bool isGreen_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
 }
 
 bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
+  // This function checks whether the given combination of YUV values makes an orange pixel
+
   bool is_orange = false;
+  
+  // Check whether we are running in a simulation, the values are slightly different for simulation and real world camerashots
+  // All values are determined by training a decision tree classifier on a set of images where a mask indicating as a label outlining the objects with pixels that we want to classify as orange
   if (is_sim) {
 
+    // Classification using simulation pixel values
     if (*vp >= 168){ 
       if (*vp <= 178){
         if (*yp > 70){
@@ -412,6 +452,8 @@ bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
     }
 
   } else {
+
+    // Classification using real world pixel values
     if (*vp<150) {
       if ((*vp > 146) && (*up < 95)){
         is_orange = true;
@@ -423,8 +465,15 @@ bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
       }
       else if (*vp > 172){
         is_orange = true;
+      }
     }
-    }
+//    if(*vp>148){
+//      if((*up<=99)&&(*yp>172)){
+//        is_orange = true;
+//      } else if((*up>99)&&(*vp>170)){
+//        is_orange = true;
+//      }
+//    }
   }
   return is_orange;
 }
