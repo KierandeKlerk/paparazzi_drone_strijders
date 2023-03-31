@@ -450,26 +450,26 @@ bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
   } else {
 
     // Classification using real world pixel values
-    if (*vp<150) {
-      if ((*vp > 146) && (*up < 95)){
+    // if (*vp<150) {
+    //   if ((*vp > 146) && (*up < 95)){
+    //     is_orange = true;
+    //   }
+    // }
+    // else {
+    //   if (*up < 107) {
+    //     is_orange = true;
+    //   }
+    //   else if (*vp > 172){
+    //     is_orange = true;
+    //   }
+    // }
+    if(*vp>148){
+      if((*up<=99)&&(*yp>172)){
+        is_orange = true;
+      } else if((*up>99)&&(*vp>170)){
         is_orange = true;
       }
     }
-    else {
-      if (*up < 107) {
-        is_orange = true;
-      }
-      else if (*vp > 172){
-        is_orange = true;
-      }
-    }
-//    if(*vp>148){
-//      if((*up<=99)&&(*yp>172)){
-//        is_orange = true;
-//      } else if((*up>99)&&(*vp>170)){
-//        is_orange = true;
-//      }
-//    }
   }
   
   return is_orange;
