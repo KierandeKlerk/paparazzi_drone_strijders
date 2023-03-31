@@ -138,6 +138,7 @@ struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attrib
 //INIT FUNCTION
 void color_object_detector_init(void)
 {
+  
   memset(global_filters, 0, 2*sizeof(struct color_object_t)); //joep: I think this creates space for the two structs
   pthread_mutex_init(&mutex, NULL);
 #ifdef COLOR_OBJECT_DETECTOR_CAMERA1
@@ -183,7 +184,6 @@ void find_object_centroid(struct image_t *img) {
   uint8_t obstacleincolumn[520];      //ARRAY CONTAINING A BINARY FOR EVERY ROW. 1 -> POLE DETECTED. 0 -> NO POLE DETECTED
   uint8_t greenOutline[img->h/heightFraction];
 
-
   //THIS LOOP EMPTIES THE OBSTACLE LIST
   for (uint8_t loop = 0; loop < 15; loop++) {
       obstacleList[loop] = 0;
@@ -201,9 +201,9 @@ void find_object_centroid(struct image_t *img) {
       //ORANGE IN COLUMN COUNTER IS SET TO 0 FOR THE NEXT COLUMN
       orangeincolumncounter[row] = 0;
 
-      for (uint16_t col = 0; col<img->h; col++) {
+      for (uint16_t col = 0; col<img->w; col++) {
           
-        //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
+         //NOW WE LOOP THROUGH ALL THE PIXELS AND CHECK IF THEY ARE ORANGE
         uint8_t *yp, *up, *vp;
 
         //OBTAINING THE CORRECT COLOR VALUES FOR THE CURRENT PIXEL
@@ -218,8 +218,6 @@ void find_object_centroid(struct image_t *img) {
           vp = &buffer[row * 2 * img->w + 2 * col];      // V
           yp = &buffer[row * 2 * img->w + 2 * col + 1];  // Y2
         }
-        
-
         //CHECKING IF THE COLOR VALUES OF THE CURRENT PIXEL ARE ORANGE
         if (isOrange_yuv(yp, up, vp, is_simulation)){
           //ORANGE! -> + 1 ON THE ORANGEINCOLUMNCOUNTER
@@ -338,7 +336,6 @@ void find_object_centroid(struct image_t *img) {
 
   } else {
     // Orange obstacle detection logic to be used when using orange detector
-
     //FOR EVERY ROW CHECK IF THE AMOUNT OF ORANGE IS ABOVE CERTAIN THRESHOLD
     for(uint16_t i=0; i<520;i++) {
       if (orangeincolumncounter[i] >= 60) {
@@ -350,7 +347,6 @@ void find_object_centroid(struct image_t *img) {
         obstacleincolumn[i] = 0;
       }
     }
-
     //LOOPING THROUGH OBSTACLEINCOLUMN
     for (uint32_t ind=0; ind < 520; ind++) {
       //CHECKING WHERE WE GO FROM - TO 1 VALUE (BEGIN OF OBSTACLE)
@@ -475,5 +471,6 @@ bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
 //      }
 //    }
   }
+  
   return is_orange;
 }
