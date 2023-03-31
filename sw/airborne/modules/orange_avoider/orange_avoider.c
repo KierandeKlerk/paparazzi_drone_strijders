@@ -43,9 +43,6 @@ static uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
-static uint8_t increase_nav_heading_left_turn(float incrementDegrees);
-static uint8_t increase_nav_heading_right_turn(float incrementDegrees);
-static uint8_t chooseRandomIncrementAvoidance(void);
 uint8_t chooseRandomIncrementAvoidance_Right(void);
 uint8_t chooseRandomIncrementAvoidance_Left(void);
 
@@ -64,9 +61,6 @@ enum navigation_state_t navigation_state = SAFE; // start assuming it is safe
 int32_t color_count[15] ;                // orange color count from color filter for obstacle detection
 float heading_increment = 10.f;          // heading angle increment [deg]
 float maxDistance = 5;               // max waypoint displacement [m]
-//float fov = 2.0943951;          // estimated fov in radians
-//float unitdistance;
-//unitdistance = 260./tanf(fov/2.);
 float unitdistance = 150.111069;
 
 
@@ -118,34 +112,12 @@ void orange_avoider_init(void)
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
 }
 
-
-// for(i=2; i <=14){
-//   if (x[i] > collision_threshold || x[i] ==0)
-//     {
-//         //update confidence level 
-//         // switch case to SAFE
-//         printf("I am safe, i am moving forward!I am moving forward!");
-//     }
-//   else if(x[i] <= collision_threshold)
-//   {
-//     //switch case to OBSTACLE Found
-//     if(x[i-2] < frame_center_coordinate) // this means that the obstabcle 
-//                                           // is to the left of center line
-//       {
-//         //turn right
-//         printf("Object at Left, Giving command to turn right");
-//       }
-//   }
-//   i = i+3;
-// }
-
 bool wecangoleft = true;
 
 void orange_avoider_periodic(void)
 {
-    uint16_t biggestgap_unsigned;
     int16_t biggestgap_signed;
-    int16_t dx;
+    int16_t dx = 0;
     int biggestgap= 0;
     int valuebiggestgap = 0;
     float headingchange;
@@ -223,9 +195,7 @@ void orange_avoider_periodic(void)
     }
 
     // bound obstacle_free_confidence JJJJJJJJJJJJ
-    //float moveDistance = fminf(maxDistance, 0.4f * 3); // TODO joep change this logic to scale waypoint->speed
     float trajectorydistance = 2.5;
-    //float moveDistance = maxDistance;
     switch (navigation_state)
     {
 
@@ -245,7 +215,7 @@ void orange_avoider_periodic(void)
         printf("\n IM NOW GOING TO THE GAP");
       //Joep cast biggest gap to a signed int
       headingchange = atanf((float) dx / unitdistance) * 20;
-      printf("\n PRINTING HEADING CHANGE : %d", headingchange);
+      printf("\n PRINTING HEADING CHANGE : %f", headingchange);
       if (headingchange > 0){
           printf("\n WE CAN GO LEFT AGAIN");
           wecangoleft = true;
@@ -317,35 +287,6 @@ uint8_t increase_nav_heading(float incrementDegrees)
 }
 
 
-// uint8_t increase_nav_heading_right_turn(float incrementDegrees)
-// {
-//   float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(-1*incrementDegrees);
-
-//   // normalize heading to [-pi, pi]
-//   FLOAT_ANGLE_NORMALIZE(new_heading);
-
-//   // set heading, declared in firmwares/rotorcraft/navigation.h
-//   // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
-//   nav_heading = ANGLE_BFP_OF_REAL(new_heading);
-
-//   VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-//   return false;
-// }
-
-// uint8_t increase_nav_heading_left_turn(float incrementDegrees)
-// {
-//   float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
-
-//   // normalize heading to [-pi, pi]
-//   FLOAT_ANGLE_NORMALIZE(new_heading);
-
-//   // set heading, declared in firmwares/rotorcraft/navigation.h
-//   // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
-//   nav_heading = ANGLE_BFP_OF_REAL(new_heading);
-
-//   VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-//   return false;
-// }
 /*
  * Calculates coordinates of distance forward and sets waypoint 'waypoint' to those coordinates
  */
@@ -367,9 +308,6 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
   // Now determine where to place the waypoint you want to go to
   new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
   new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-//  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,
-//                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-//                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
   return false;
 }
 
@@ -378,27 +316,10 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
-//  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-//                POS_FLOAT_OF_BFP(new_coor->y));
   waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
   return false;
 }
 
-/*
- * Sets the variable 'heading_increment' randomly positive/negative
- */
-uint8_t chooseRandomIncrementAvoidance(void)
-{
-  // Randomly choose CW or CCW avoiding direction
-  if (rand() % 2 == 0) {
-    heading_increment = 5.f;
-    VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  } else {
-    heading_increment = -5.f;
-    VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  }
-  return false;
-}
 
 uint8_t chooseRandomIncrementAvoidance_Right(void)
 {
