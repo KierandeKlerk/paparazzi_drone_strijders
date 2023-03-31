@@ -67,7 +67,7 @@ uint8_t greenPixelCounterStop = 15; // pixels
 uint8_t greenSlopeThreshold =  15; // pixels
 uint8_t heightFraction = 4;
 
-bool is_simulation = true;
+bool is_simulation = false;
 bool use_orange = true;
 
 //FILTER SETTINGS
