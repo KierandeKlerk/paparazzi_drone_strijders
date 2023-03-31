@@ -193,7 +193,8 @@ void find_object_centroid(struct image_t *img) {
 
 
   if (use_orange){
-    
+    // If we chose to use orange avoider, the following code runs
+
     //HERE WE LOOP THROUGH ALL 520 ROWS
     for (uint16_t row = 0; row < img->h; row++) {
       //ORANGE IN COLUMN COUNTER IS SET TO 0 FOR THE NEXT COLUMN
@@ -225,10 +226,12 @@ void find_object_centroid(struct image_t *img) {
         }
       }
     }
+    // End of orange detector loop
 
   } else {
-    
-     //HERE WE LOOP THROUGH ALL 520 ROWS
+    // We chose to run the green gap detector, the following code runs
+
+    //HERE WE LOOP THROUGH ALL 520 ROWS
     for (uint16_t row = 0; row < img->h; row++) {
       uint8_t notGreenCounter = 0;
 
@@ -268,12 +271,13 @@ void find_object_centroid(struct image_t *img) {
         }
       }
     }
+    // End of green gap detector loop
   }
   //WE HAVE NOW LOOPED ALL THE PIXELS, TIME TO USE THE FOUND VALUES
 
  
   if(!use_orange) {
-    //Detect dips in green pixel outline. One potential problem arises when there are more than 5 obstacles visible
+    //Detect dips in green pixel outline. One potential problem arises when there are more than 5 obstacles visible and it doesn't really work
     int8_t prevDirection = 0;
     bool is_first = true;
     uint8_t obstacle_list_ind = 0;
@@ -398,37 +402,29 @@ bool isOrange_yuv(uint8_t *yp, uint8_t *up, uint8_t *vp, bool is_sim){
 
     if (*vp >= 168){ 
       if (*vp <= 178){
-          if (*yp > 70){
-              is_orange = true;
-          }
+        if (*yp > 70){
+          is_orange = true;
+        }
       }
       else if(*yp >= 80){
-          is_orange = true;
+        is_orange = true;
       }
     }
 
   } else {
-      if (*vp<150) {
-          if ((*vp > 146) && (*up < 95)){
-              is_orange = true;
-          }
+    if (*vp<150) {
+      if ((*vp > 146) && (*up < 95)){
+        is_orange = true;
       }
-      else {
-          if (*up < 107) {
-              is_orange = true;
-          }
-          else if (*vp > 172){
-              is_orange = true;
+    }
+    else {
+      if (*up < 107) {
+        is_orange = true;
       }
-      }
-
-//    if(*vp>148){
-//      if((*up<=99)&&(*yp>172)){
-//        is_orange = true;
-//      } else if((*up>99)&&(*vp>170)){
-//        is_orange = true;
-//      }
-//    }
+      else if (*vp > 172){
+        is_orange = true;
+    }
+    }
   }
   return is_orange;
 }
